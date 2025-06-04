@@ -338,8 +338,35 @@ export async function POST(request: NextRequest) {
 
     console.log(`Transcription completed for job: ${jobId}`);
 
-    // TODO: In the next phase, trigger the script generation process
-    // For now, we just complete the transcription
+    // Trigger script generation automatically
+    try {
+      console.log(`Triggering script generation for job: ${jobId}`);
+
+      const generateResponse = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+        }/api/generate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ jobId }),
+        }
+      );
+
+      if (!generateResponse.ok) {
+        const errorData = await generateResponse.json();
+        console.error(`Script generation failed:`, errorData);
+      } else {
+        console.log(
+          `Script generation triggered successfully for job: ${jobId}`
+        );
+      }
+    } catch (error) {
+      console.error(`Failed to trigger script generation:`, error);
+      // Don't fail the whole request if script generation fails
+    }
 
     return NextResponse.json({
       success: true,

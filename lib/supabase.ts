@@ -20,6 +20,7 @@ export interface Job {
     | "transcribing"
     | "transcription_complete"
     | "generating_script"
+    | "script_generated"
     | "generating_video"
     | "video_ready"
     | "scheduled_to_socialbee"

@@ -17,6 +17,7 @@ interface JobStatus {
     | "transcribing"
     | "transcription_complete"
     | "generating_script"
+    | "script_generated"
     | "generating_video"
     | "video_ready"
     | "scheduled_to_socialbee"
@@ -35,6 +36,7 @@ const STATUS_STEPS = [
     progress: 50,
   },
   { key: "generating_script", label: "Generating Script", progress: 60 },
+  { key: "script_generated", label: "Script Ready", progress: 70 },
   { key: "generating_video", label: "Creating Video", progress: 80 },
   { key: "video_ready", label: "Video Ready", progress: 90 },
   {
@@ -115,7 +117,7 @@ export function TikTokForm() {
           if (
             status.status === "scheduled_to_socialbee" ||
             status.status === "error" ||
-            status.status === "transcription_complete"
+            status.status === "video_ready"
           ) {
             clearInterval(pollInterval);
           }
@@ -280,8 +282,20 @@ export function TikTokForm() {
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Your video has been scheduled in SocialBee! Individual
-                  platform posts will publish at their scheduled times.
+                  Your content has been processed and scheduled! The
+                  AI-generated script and video are ready for multi-platform
+                  posting.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {jobStatus.status === "script_generated" && (
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  AI script generated successfully! Your content is ready for
+                  video creation. Check the dashboard to view the generated
+                  script.
                 </AlertDescription>
               </Alert>
             )}

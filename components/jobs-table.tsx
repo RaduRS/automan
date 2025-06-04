@@ -6,12 +6,22 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   CheckCircle,
   XCircle,
   Clock,
   Instagram,
   Youtube,
   Twitter,
+  FileText,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type VariantProps } from "class-variance-authority";
@@ -110,6 +120,7 @@ function getStatusBadge(status: Job["status"]) {
     transcribing: { variant: "secondary", label: "Transcribing" },
     transcription_complete: { variant: "secondary", label: "Transcribed" },
     generating_script: { variant: "secondary", label: "Generating Script" },
+    script_generated: { variant: "default", label: "Script Ready" },
     generating_video: { variant: "secondary", label: "Creating Video" },
     video_ready: { variant: "secondary", label: "Video Ready" },
     scheduled_to_socialbee: { variant: "default", label: "Scheduled" },
@@ -122,6 +133,144 @@ function getStatusBadge(status: Job["status"]) {
   };
 
   return <Badge variant={config.variant}>{config.label}</Badge>;
+}
+
+interface ScriptViewerProps {
+  job: Job;
+}
+
+function ScriptViewer({ job }: ScriptViewerProps) {
+  const hasScript = job.openai_script && job.openai_script.trim() !== "";
+  const canGenerateScript =
+    job.status === "transcription_complete" && !hasScript;
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateScript = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jobId: job.id }),
+      });
+
+      if (response.ok) {
+        // Refresh the page to show the updated job
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        alert(`Failed to generate script: ${error.error}`);
+      }
+    } catch (error) {
+      alert(`Failed to generate script: ${error}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  if (canGenerateScript) {
+    return (
+      <div className="text-center">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleGenerateScript}
+          disabled={isGenerating}
+          className="h-auto p-2"
+        >
+          <div className="flex flex-col items-center gap-1">
+            <FileText className="w-4 h-4 text-green-500" />
+            <span className="text-xs text-green-500">
+              {isGenerating ? "Generating..." : "Generate Script"}
+            </span>
+          </div>
+        </Button>
+      </div>
+    );
+  }
+
+  if (!hasScript) {
+    return (
+      <div className="text-center">
+        <FileText className="w-4 h-4 text-muted-foreground mx-auto" />
+        <div className="text-xs text-muted-foreground mt-1">No script</div>
+      </div>
+    );
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-auto p-2">
+          <div className="flex flex-col items-center gap-1">
+            <Eye className="w-4 h-4 text-blue-500" />
+            <span className="text-xs text-blue-500">View Script</span>
+          </div>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Generated Content</DialogTitle>
+          <DialogDescription>
+            AI-generated script and content for job: {job.id.slice(0, 8)}...
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-6">
+          {job.job_title && (
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Title:</h3>
+              <p className="text-sm bg-muted p-3 rounded">{job.job_title}</p>
+            </div>
+          )}
+
+          {job.openai_script && (
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Generated Script:</h3>
+              <div className="text-sm bg-muted p-4 rounded max-h-60 overflow-y-auto whitespace-pre-wrap">
+                {job.openai_script}
+              </div>
+            </div>
+          )}
+
+          {(job.transcript_1 || job.transcript_2 || job.transcript_3) && (
+            <div>
+              <h3 className="font-semibold text-sm mb-2">
+                Original Transcripts:
+              </h3>
+              <div className="space-y-2">
+                {job.transcript_1 && (
+                  <div>
+                    <h4 className="text-xs font-medium mb-1">Video 1:</h4>
+                    <div className="text-xs bg-muted/50 p-2 rounded max-h-32 overflow-y-auto">
+                      {job.transcript_1}
+                    </div>
+                  </div>
+                )}
+                {job.transcript_2 && (
+                  <div>
+                    <h4 className="text-xs font-medium mb-1">Video 2:</h4>
+                    <div className="text-xs bg-muted/50 p-2 rounded max-h-32 overflow-y-auto">
+                      {job.transcript_2}
+                    </div>
+                  </div>
+                )}
+                {job.transcript_3 && (
+                  <div>
+                    <h4 className="text-xs font-medium mb-1">Video 3:</h4>
+                    <div className="text-xs bg-muted/50 p-2 rounded max-h-32 overflow-y-auto">
+                      {job.transcript_3}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function formatDate(dateString: string) {
@@ -220,6 +369,7 @@ export function JobsTable() {
                   <th className="text-left p-3 font-medium">Title / Job ID</th>
                   <th className="text-left p-3 font-medium">Created</th>
                   <th className="text-left p-3 font-medium">Status</th>
+                  <th className="text-center p-3 font-medium">Script</th>
                   <th className="text-center p-3 font-medium">Instagram</th>
                   <th className="text-center p-3 font-medium">Facebook</th>
                   <th className="text-center p-3 font-medium">TikTok</th>
@@ -231,11 +381,7 @@ export function JobsTable() {
                 {filteredJobs.map((job) => (
                   <tr
                     key={job.id}
-                    className="border-b hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => {
-                      // TODO: Navigate to job details page
-                      console.log("Navigate to job:", job.id);
-                    }}
+                    className="border-b hover:bg-muted/50 transition-colors"
                   >
                     <td className="p-3">
                       {job.job_title && job.job_title.trim() && (
@@ -257,6 +403,9 @@ export function JobsTable() {
                           {job.error_message.substring(0, 50)}...
                         </div>
                       )}
+                    </td>
+                    <td className="p-3 text-center">
+                      <ScriptViewer job={job} />
                     </td>
                     <td className="p-3 text-center">
                       <PlatformStatus
