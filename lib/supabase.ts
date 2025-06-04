@@ -18,11 +18,11 @@ export interface Job {
     | "submitted"
     | "downloading"
     | "transcribing"
+    | "transcription_complete"
     | "generating_script"
     | "generating_video"
     | "video_ready"
-    | "publishing"
-    | "published"
+    | "scheduled_to_socialbee"
     | "error";
   transcript_1?: string | null;
   transcript_2?: string | null;
@@ -39,7 +39,6 @@ export interface Job {
   tiktok_posted: boolean;
   youtube_posted: boolean;
   x_posted: boolean;
-  linkedin_posted: boolean;
   created_at: string;
   updated_at: string;
 }

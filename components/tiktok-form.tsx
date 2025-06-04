@@ -15,11 +15,11 @@ interface JobStatus {
     | "submitted"
     | "downloading"
     | "transcribing"
+    | "transcription_complete"
     | "generating_script"
     | "generating_video"
     | "video_ready"
-    | "publishing"
-    | "published"
+    | "scheduled_to_socialbee"
     | "error";
   error_message?: string;
   created_at: string;
@@ -29,11 +29,19 @@ const STATUS_STEPS = [
   { key: "submitted", label: "Submitted", progress: 10 },
   { key: "downloading", label: "Downloading TikToks", progress: 20 },
   { key: "transcribing", label: "Transcribing Audio", progress: 40 },
+  {
+    key: "transcription_complete",
+    label: "Transcription Complete",
+    progress: 50,
+  },
   { key: "generating_script", label: "Generating Script", progress: 60 },
   { key: "generating_video", label: "Creating Video", progress: 80 },
   { key: "video_ready", label: "Video Ready", progress: 90 },
-  { key: "publishing", label: "Publishing", progress: 95 },
-  { key: "published", label: "Published", progress: 100 },
+  {
+    key: "scheduled_to_socialbee",
+    label: "Scheduled to SocialBee",
+    progress: 100,
+  },
 ];
 
 export function TikTokForm() {
@@ -104,7 +112,11 @@ export function TikTokForm() {
           setJobStatus(status);
 
           // Stop polling if job is complete or failed
-          if (status.status === "published" || status.status === "error") {
+          if (
+            status.status === "scheduled_to_socialbee" ||
+            status.status === "error" ||
+            status.status === "transcription_complete"
+          ) {
             clearInterval(pollInterval);
           }
         }
@@ -127,7 +139,7 @@ export function TikTokForm() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "published":
+      case "scheduled_to_socialbee":
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case "error":
         return <XCircle className="h-5 w-5 text-red-500" />;
@@ -264,12 +276,12 @@ export function TikTokForm() {
               </Alert>
             )}
 
-            {jobStatus.status === "published" && (
+            {jobStatus.status === "scheduled_to_socialbee" && (
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Your video has been successfully generated and published to
-                  social media!
+                  Your video has been scheduled in SocialBee! Individual
+                  platform posts will publish at their scheduled times.
                 </AlertDescription>
               </Alert>
             )}

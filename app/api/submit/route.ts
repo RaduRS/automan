@@ -67,8 +67,31 @@ export async function POST(request: NextRequest) {
 
     const jobId = data.id;
 
-    // TODO: In the next phase, trigger the transcription process
-    // For now, we just return the job ID
+    // Trigger transcription process
+    try {
+      await fetch(
+        `${
+          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+        }/api/transcribe`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ jobId }),
+        }
+      );
+    } catch (triggerError) {
+      console.error("Failed to trigger transcription:", triggerError);
+      // Update job status to error
+      await supabase
+        .from("jobs")
+        .update({
+          status: "error",
+          error_message: "Failed to start transcription process",
+        })
+        .eq("id", jobId);
+    }
 
     return NextResponse.json({
       success: true,

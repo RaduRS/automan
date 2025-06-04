@@ -9,7 +9,7 @@ Build a Next.js application that automates the process of taking a TikTok URL (a
 - **Frontend & Backend:** Next.js 15 (with TypeScript)
 - **UI Library:** Shadcn UI (for styling and components)
 - **Database:** Supabase (for storing application state, job metadata, and intermediate results)
-- **TikTok URL Resolution & Media Retrieval:** `downloadtiktok` Node.js library
+- **TikTok URL Resolution & Media Retrieval:** `@tobyg74/tiktok-api-dl` Node.js library
 - **Cloud Storage & Media Transformations:** Cloudinary (for storing videos and audio, and for audio extraction)
 - **Speech-to-Text:** Deepgram (for transcribing audio to text)
 - **AI Script Generation:** OpenAI API (for creating new video scripts and scene breakdowns from the combined transcripts)
@@ -18,7 +18,7 @@ Build a Next.js application that automates the process of taking a TikTok URL (a
 
 ## Required npm packages:
 
-- downloadtiktok
+- @tobyg74/tiktok-api-dl
 - @supabase/supabase-js
 - cloudinary
 - @deepgram/sdk
@@ -117,12 +117,7 @@ Additional columns as needed to store API responses, error messages, etc.
 - Updates the job status in Supabase to `"downloading"`
 - **Process URLs sequentially (not in parallel) to avoid timeout issues**
 - For each TikTok URL (up to 3):
-    - Uses `downloadtiktok` library to get the direct audio URL (or video URL if direct audio isn't available)
-
-        javascript
-
-        `const dt = require("downloadtiktok"); const result = await dt.downloadTiktok(tiktokUrl); const audios = dt.filterAudio(result.medias); // Get available audio streams`
-
+    - Uses `@tobyg74/tiktok-api-dl` library to get the direct audio URL (or video URL if direct audio isn't available)
     - If direct audio URL is available:
         - Uploads the audio to Cloudinary (folder `tiktok_audios`)
     - Else (if only video URL is available):
