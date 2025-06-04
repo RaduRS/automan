@@ -46,7 +46,7 @@ The application will consist of the following components:
     - **Job title/ID**
     - **Created date**
     - **Status**
-    - **Social media platform columns (Instagram, Facebook, TikTok, YouTube, Twitter, LinkedIn)**
+    - **Social media platform columns (Instagram, Facebook, TikTok, YouTube, X)**
     - **Each platform column shows:**
         - **✓ (green checkmark icon) if posted successfully**
         - **✗ (red X icon) if not posted or failed**

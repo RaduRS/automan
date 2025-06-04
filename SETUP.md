@@ -64,7 +64,6 @@ CREATE TABLE jobs (
     tiktok_posted BOOLEAN DEFAULT false,
     youtube_posted BOOLEAN DEFAULT false,
     x_posted BOOLEAN DEFAULT false,
-    linkedin_posted BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

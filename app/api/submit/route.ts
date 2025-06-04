@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
         tiktok_posted: false,
         youtube_posted: false,
         x_posted: false,
-        linkedin_posted: false,
       })
       .select("id")
       .single();
