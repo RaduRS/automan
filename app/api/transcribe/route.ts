@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { v2 as cloudinary } from "cloudinary";
 import { createClient } from "@deepgram/sdk";
-import { Downloader } from "@tobyg74/tiktok-api-dl";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -13,6 +12,21 @@ cloudinary.config({
 
 // Configure Deepgram
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY || "");
+
+interface TikTokVideoData {
+  play?: string; // Video URL without watermark
+  wmplay?: string; // Video URL with watermark
+  hdplay?: string; // HD video URL
+  music?: string; // Direct audio URL
+  music_info?: {
+    play?: string; // Audio URL from music info
+    duration?: number;
+    title?: string;
+  };
+  title: string;
+  duration: number;
+  images?: string[]; // For image posts
+}
 
 interface TikTokMedia {
   url: string;
@@ -40,7 +54,6 @@ async function exponentialBackoff<T>(
       if (attempt === maxRetries) break;
 
       const delay = baseDelay * Math.pow(2, attempt);
-      console.log(`Retrying in ${delay}ms...`);
       await sleep(delay);
     }
   }
@@ -50,67 +63,102 @@ async function exponentialBackoff<T>(
 
 async function downloadTikTokMedia(url: string): Promise<TikTokMedia[]> {
   return exponentialBackoff(async () => {
-    console.log(`⬇️ Downloading TikTok: ${url}`);
+    console.log(`Downloading TikTok: ${url}`);
 
-    const result = await Downloader(url, {
-      version: "v1",
+    const apiUrl = `https://tiktok-scraper7.p.rapidapi.com/`;
+    const queryParams = new URLSearchParams({
+      url: url,
+      hd: "1",
     });
 
-    if (result.status !== "success" || !result.result) {
+    const response = await fetch(`${apiUrl}?${queryParams}`, {
+      method: "GET",
+      headers: {
+        "X-RapidAPI-Key": process.env.RAPIDAPI_KEY || "",
+        "X-RapidAPI-Host": "tiktok-scraper7.p.rapidapi.com",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+    });
+
+    if (!response.ok) {
       throw new Error(
-        `TikTok download failed: ${result.message || "Unknown error"}`
+        `RapidAPI request failed: ${response.status} ${response.statusText}`
       );
     }
 
-    const data = result.result;
+    const data = await response.json();
+
+    if (data.code !== 0 || !data.data) {
+      throw new Error(`TikTok download failed: ${data.msg || "Unknown error"}`);
+    }
+
+    const videoData: TikTokVideoData = data.data;
     const medias: TikTokMedia[] = [];
 
-    if (data.type === "video" && data.video) {
-      // Try to get audio URL first from music
-      if (data.music && data.music.playUrl && data.music.playUrl.length > 0) {
-        medias.push({
-          url: data.music.playUrl[0],
-          type: "audio",
-        });
-        console.log(`🎵 Found audio track: ${data.music.title}`);
-      }
+    // Priority 1: HD video for audio extraction (best quality, contains speech)
+    if (videoData.hdplay && videoData.hdplay.trim() !== "") {
+      medias.push({
+        url: videoData.hdplay,
+        type: "video",
+      });
+    }
 
-      // Add video URLs as fallback
-      if (data.video.downloadAddr && data.video.downloadAddr.length > 0) {
-        medias.push({
-          url: data.video.downloadAddr[0],
-          type: "video",
-        });
-        console.log(
-          `🎥 Found video (${data.video.duration}ms, ${data.video.ratio})`
-        );
-      } else if (data.video.playAddr && data.video.playAddr.length > 0) {
-        medias.push({
-          url: data.video.playAddr[0],
-          type: "video",
-        });
-        console.log(
-          `🎥 Found video (${data.video.duration}ms, ${data.video.ratio})`
-        );
-      }
-    } else if (data.type === "image" && data.images && data.images.length > 0) {
-      // For image posts, we can only get audio from music
-      if (data.music && data.music.playUrl && data.music.playUrl.length > 0) {
-        medias.push({
-          url: data.music.playUrl[0],
-          type: "audio",
-        });
-        console.log(`🖼️ Image post with audio track: ${data.music.title}`);
-      } else {
-        throw new Error("Image post found but no audio track available");
-      }
+    // Priority 2: Regular video for audio extraction (contains speech)
+    if (videoData.play && videoData.play.trim() !== "") {
+      medias.push({
+        url: videoData.play,
+        type: "video",
+      });
+    }
+
+    // Priority 3: Watermarked video as fallback (still contains speech)
+    if (videoData.wmplay && videoData.wmplay.trim() !== "") {
+      medias.push({
+        url: videoData.wmplay,
+        type: "video",
+      });
+    }
+
+    // Priority 4: Direct audio URL (might be background music, less ideal for transcription)
+    if (
+      videoData.music &&
+      videoData.music.trim() !== "" &&
+      medias.length === 0
+    ) {
+      medias.push({
+        url: videoData.music,
+        type: "audio",
+      });
+    }
+
+    // Priority 5: Audio from music_info (likely background music, last resort)
+    if (
+      videoData.music_info?.play &&
+      videoData.music_info.play.trim() !== "" &&
+      medias.length === 0
+    ) {
+      medias.push({
+        url: videoData.music_info.play,
+        type: "audio",
+      });
+    }
+
+    // Handle image posts (no video content to transcribe)
+    if (
+      videoData.images &&
+      videoData.images.length > 0 &&
+      medias.length === 0
+    ) {
+      throw new Error(
+        "This is an image post with no audio content to transcribe"
+      );
     }
 
     if (medias.length === 0) {
       throw new Error("No usable media streams found in TikTok response");
     }
 
-    console.log(`✅ Extracted ${medias.length} media stream(s)`);
     return medias;
   });
 }
@@ -125,8 +173,6 @@ async function uploadToCloudinary(
       type === "audio" ? "tiktok_audios" : "tiktok_videos_for_audio_extraction";
     const publicId = `${jobId}_${Date.now()}`;
 
-    console.log(`☁️ Uploading ${type} to Cloudinary`);
-
     const uploadResult = await cloudinary.uploader.upload(mediaUrl, {
       resource_type: type === "audio" ? "auto" : "video",
       folder: folder,
@@ -140,18 +186,16 @@ async function uploadToCloudinary(
         format: "mp3",
         flags: "attachment",
       });
-      console.log(`🎵 Extracted audio from video`);
       return audioUrl;
     }
 
-    console.log(`✅ Upload complete`);
     return uploadResult.secure_url;
   });
 }
 
 async function transcribeAudio(audioUrl: string): Promise<string> {
   return exponentialBackoff(async () => {
-    console.log(`🎤 Starting transcription...`);
+    console.log(`Starting transcription...`);
 
     const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
       { url: audioUrl },
@@ -161,20 +205,31 @@ async function transcribeAudio(audioUrl: string): Promise<string> {
         smart_format: true,
         punctuate: true,
         diarize: false,
+        detect_language: true,
+        filler_words: false,
       }
     );
 
     if (error) {
+      console.error(`Deepgram error:`, error);
       throw new Error(`Deepgram transcription error: ${error.message}`);
     }
 
     if (!result?.results?.channels?.[0]?.alternatives?.[0]?.transcript) {
-      throw new Error("No transcript returned from Deepgram");
+      throw new Error(
+        `No transcript returned from Deepgram. Audio might be too short, silent, or in an unsupported format.`
+      );
     }
 
     const transcript = result.results.channels[0].alternatives[0].transcript;
-    console.log(`✅ Transcription complete (${transcript.length} characters)`);
 
+    if (transcript.trim().length === 0) {
+      throw new Error(
+        "Transcript is empty - audio might be silent or too quiet"
+      );
+    }
+
+    console.log(`Transcription complete (${transcript.length} characters)`);
     return transcript;
   });
 }
@@ -237,11 +292,15 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`Processing URL ${i + 1}/${urls.length}: ${url}`);
 
-        // Download TikTok media
+        // Download TikTok media via RapidAPI
         const medias = await downloadTikTokMedia(url);
 
-        // Prefer audio, fallback to video
-        const media = medias.find((m) => m.type === "audio") || medias[0];
+        // Prefer video for speech content, fallback to audio
+        const media = medias.find((m) => m.type === "video") || medias[0];
+
+        if (!media) {
+          throw new Error("No media found to process");
+        }
 
         // Upload to Cloudinary
         const audioUrl = await uploadToCloudinary(media.url, media.type, jobId);
