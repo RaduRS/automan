@@ -1,0 +1,281 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
+
+interface JobStatus {
+  id: string;
+  status:
+    | "submitted"
+    | "downloading"
+    | "transcribing"
+    | "generating_script"
+    | "generating_video"
+    | "video_ready"
+    | "publishing"
+    | "published"
+    | "error";
+  error_message?: string;
+  created_at: string;
+}
+
+const STATUS_STEPS = [
+  { key: "submitted", label: "Submitted", progress: 10 },
+  { key: "downloading", label: "Downloading TikToks", progress: 20 },
+  { key: "transcribing", label: "Transcribing Audio", progress: 40 },
+  { key: "generating_script", label: "Generating Script", progress: 60 },
+  { key: "generating_video", label: "Creating Video", progress: 80 },
+  { key: "video_ready", label: "Video Ready", progress: 90 },
+  { key: "publishing", label: "Publishing", progress: 95 },
+  { key: "published", label: "Published", progress: 100 },
+];
+
+export function TikTokForm() {
+  const [urls, setUrls] = useState({
+    url1: "",
+    url2: "",
+    url3: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!urls.url1.trim()) {
+      setError("Primary TikTok URL is required");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    setJobStatus(null);
+
+    try {
+      const response = await fetch("/api/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tiktok_url_1: urls.url1.trim(),
+          tiktok_url_2: urls.url2.trim() || null,
+          tiktok_url_3: urls.url3.trim() || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setJobStatus({
+          id: data.jobId,
+          status: "submitted",
+          created_at: new Date().toISOString(),
+        });
+        // Start polling for status updates
+        startStatusPolling(data.jobId);
+      } else {
+        throw new Error(data.error || "Failed to submit job");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const startStatusPolling = (jobId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/job-status/${jobId}`);
+        if (response.ok) {
+          const status = await response.json();
+          setJobStatus(status);
+
+          // Stop polling if job is complete or failed
+          if (status.status === "published" || status.status === "error") {
+            clearInterval(pollInterval);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch job status:", err);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    // Cleanup interval after 5 minutes to prevent infinite polling
+    setTimeout(() => clearInterval(pollInterval), 300000);
+  };
+
+  const getCurrentStep = () => {
+    if (!jobStatus) return null;
+    return (
+      STATUS_STEPS.find((step) => step.key === jobStatus.status) ||
+      STATUS_STEPS[0]
+    );
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "published":
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case "error":
+        return <XCircle className="h-5 w-5 text-red-500" />;
+      default:
+        return <Clock className="h-5 w-5 text-blue-500" />;
+    }
+  };
+
+  const handleReset = () => {
+    setUrls({ url1: "", url2: "", url3: "" });
+    setJobStatus(null);
+    setError(null);
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Input Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Submit TikTok URLs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="url1">Primary TikTok URL *</Label>
+              <Input
+                id="url1"
+                type="url"
+                value={urls.url1}
+                onChange={(e) =>
+                  setUrls((prev) => ({ ...prev, url1: e.target.value }))
+                }
+                placeholder="https://www.tiktok.com/@username/video/..."
+                disabled={isSubmitting || !!jobStatus}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="url2">Additional TikTok URL (Optional)</Label>
+              <Input
+                id="url2"
+                type="url"
+                value={urls.url2}
+                onChange={(e) =>
+                  setUrls((prev) => ({ ...prev, url2: e.target.value }))
+                }
+                placeholder="https://www.tiktok.com/@username/video/..."
+                disabled={isSubmitting || !!jobStatus}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="url3">Additional TikTok URL (Optional)</Label>
+              <Input
+                id="url3"
+                type="url"
+                value={urls.url3}
+                onChange={(e) =>
+                  setUrls((prev) => ({ ...prev, url3: e.target.value }))
+                }
+                placeholder="https://www.tiktok.com/@username/video/..."
+                disabled={isSubmitting || !!jobStatus}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                disabled={isSubmitting || !!jobStatus}
+                className="flex-1"
+              >
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {isSubmitting ? "Submitting..." : "Submit"}
+              </Button>
+
+              {jobStatus && (
+                <Button type="button" variant="outline" onClick={handleReset}>
+                  New Job
+                </Button>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Error Display */}
+      {error && (
+        <Alert variant="destructive">
+          <XCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Job Status Display */}
+      {jobStatus && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {getStatusIcon(jobStatus.status)}
+              Job Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">
+                Job ID: {jobStatus.id}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                Status: {jobStatus.status.replace("_", " ").toUpperCase()}
+              </span>
+            </div>
+
+            {getCurrentStep() && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">{getCurrentStep()!.label}</span>
+                  <span className="text-sm">{getCurrentStep()!.progress}%</span>
+                </div>
+                <Progress
+                  value={getCurrentStep()!.progress}
+                  className="w-full"
+                />
+              </div>
+            )}
+
+            {jobStatus.status === "error" && jobStatus.error_message && (
+              <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertDescription>{jobStatus.error_message}</AlertDescription>
+              </Alert>
+            )}
+
+            {jobStatus.status === "published" && (
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Your video has been successfully generated and published to
+                  social media!
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
