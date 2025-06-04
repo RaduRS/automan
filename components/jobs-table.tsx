@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase, type Job } from "@/lib/supabase";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import {
   CheckCircle,
   XCircle,
@@ -14,6 +14,7 @@ import {
   Twitter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { type VariantProps } from "class-variance-authority";
 
 // Platform icons mapping
 const platformIcons = {
@@ -97,7 +98,13 @@ function PlatformStatus({
 }
 
 function getStatusBadge(status: Job["status"]) {
-  const statusConfig = {
+  const statusConfig: Record<
+    Job["status"],
+    {
+      variant: VariantProps<typeof badgeVariants>["variant"];
+      label: string;
+    }
+  > = {
     submitted: { variant: "secondary", label: "Submitted" },
     downloading: { variant: "secondary", label: "Downloading" },
     transcribing: { variant: "secondary", label: "Transcribing" },
@@ -107,14 +114,14 @@ function getStatusBadge(status: Job["status"]) {
     video_ready: { variant: "secondary", label: "Video Ready" },
     scheduled_to_socialbee: { variant: "default", label: "Scheduled" },
     error: { variant: "destructive", label: "Failed" },
-  } as const;
+  };
 
   const config = statusConfig[status] || {
-    variant: "secondary",
+    variant: "secondary" as const,
     label: status,
   };
 
-  return <Badge variant={config.variant as any}>{config.label}</Badge>;
+  return <Badge variant={config.variant}>{config.label}</Badge>;
 }
 
 function formatDate(dateString: string) {
