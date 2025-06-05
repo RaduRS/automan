@@ -22,6 +22,7 @@ export interface Job {
     | "generating_script"
     | "script_generated"
     | "generating_video"
+    | "video_generated"
     | "video_ready"
     | "scheduled_to_socialbee"
     | "error";
@@ -40,6 +41,12 @@ export interface Job {
   tiktok_posted: boolean;
   youtube_posted: boolean;
   x_posted: boolean;
+
+  // Anam API integration fields
+  anam_session_token?: string | null;
+  anam_session_id?: string | null;
+  video_url?: string | null;
+
   created_at: string;
   updated_at: string;
 }

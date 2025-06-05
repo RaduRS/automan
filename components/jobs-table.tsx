@@ -22,6 +22,8 @@ import {
   Twitter,
   FileText,
   Eye,
+  Video,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type VariantProps } from "class-variance-authority";
@@ -122,6 +124,7 @@ function getStatusBadge(status: Job["status"]) {
     generating_script: { variant: "secondary", label: "Generating Script" },
     script_generated: { variant: "default", label: "Script Ready" },
     generating_video: { variant: "secondary", label: "Creating Video" },
+    video_generated: { variant: "default", label: "Video Generated" },
     video_ready: { variant: "secondary", label: "Video Ready" },
     scheduled_to_socialbee: { variant: "default", label: "Scheduled" },
     error: { variant: "destructive", label: "Failed" },
@@ -375,6 +378,7 @@ export function JobsTable() {
                   <th className="text-center p-3 font-medium">TikTok</th>
                   <th className="text-center p-3 font-medium">YouTube</th>
                   <th className="text-center p-3 font-medium">X</th>
+                  <th className="text-center p-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -441,6 +445,35 @@ export function JobsTable() {
                         posted={job.x_posted}
                         scheduled={job.status === "scheduled_to_socialbee"}
                       />
+                    </td>
+                    <td className="p-3 text-center">
+                      <div className="flex gap-1 justify-center">
+                        {(job.status === "video_generated" ||
+                          job.status === "video_ready") && (
+                          <Button variant="outline" size="sm" asChild>
+                            <a
+                              href={`/record-video/${job.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Video className="w-3 h-3 mr-1" />
+                              Record
+                            </a>
+                          </Button>
+                        )}
+                        {job.final_video_url && (
+                          <Button variant="outline" size="sm" asChild>
+                            <a
+                              href={job.final_video_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="w-3 h-3 mr-1" />
+                              Video
+                            </a>
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

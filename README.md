@@ -58,8 +58,8 @@ The application will consist of the following components:
 
 - `/api/submit`: Accepts the TikTok URLs from the frontend, initiates the workflow
 - `/api/transcribe`: Downloads TikToks, extracts audio, transcribes to text, stores results in Supabase
-- `/api/generate`: Takes transcripts from Supabase, uses OpenAI to generate the new script and scene breakdown, and triggers HeyGen
-- `/api/heygen-webhook`: Receives the webhook call from HeyGen upon video completion, downloads the final video, stores it in Cloudinary
+- `/api/generate`: Takes transcripts from Supabase, uses OpenAI to generate the new script and scene breakdown, and triggers **Anam AI** instead of HeyGen
+- **`/api/anam-webhook`: Receives webhook calls from Anam AI upon video completion, downloads the final video, stores it in Cloudinary**
 - **`/api/socialbee-publish`: Handles social media publishing via SocialBee API**
 - `/api/socialbee-webhook`: Receives webhook calls from SocialBee on post status, updates Supabase
 - **`/api/job-status/[jobId]`: Returns current job status for frontend polling**
@@ -72,12 +72,14 @@ A table called `jobs` (or similar) to track the state of each TikTok-to-Social M
 - `tiktok_url_1` (text, required)
 - `tiktok_url_2` (text, optional)
 - `tiktok_url_3` (text, optional)
-- `status` (enum: "submitted", "downloading", "transcribing", "generating_script", "generating_video", "video_ready", "publishing", "published", "error")
+- `status` (enum: "submitted", "downloading", "transcribing", "transcription_complete", "generating_script", "script_generated", "generating_video", "video_generated", "video_ready", "publishing", "published", "error")
 - `transcript_1` (text, optional)
 - `transcript_2` (text, optional)
 - `transcript_3` (text, optional)
 - `openai_script` (text, optional)
-- `heygen_video_id` (text, optional)
+- **`anam_session_token` (text, optional) - Anam AI session token**
+- **`anam_session_id` (text, optional) - Anam AI session ID**
+- **`video_url` (text, optional) - Generated video URL**
 - `final_video_url` (text, optional, Cloudinary URL)
 - `socialbee_post_id` (text, optional)
 - **`error_message` (text, optional)**
@@ -131,33 +133,28 @@ Additional columns as needed to store API responses, error messages, etc.
 - **Logs detailed error messages in Supabase for debugging**
 - Calls `/api/generate`, passing the job ID
 
-## 4. `/api/generate` (AI Script & HeyGen Trigger):
+## 4. `/api/generate` (AI Script & Anam Trigger):
 
 - **Must complete within 60 seconds (Vercel Hobby plan timeout)**
-- Receives the job ID
+- Receives the job ID, retrieves transcripts from the database
 - Updates the job status in Supabase to `"generating_script"`
-- Retrieves the transcripts from the `jobs` table in Supabase
-- Combines the transcripts into a single input for OpenAI's API
-- Sends a request to OpenAI's API with a prompt that instructs it to generate a video script with scene breakdowns. The prompt should be carefully designed to specify the desired output format (e.g., JSON or Markdown with clear scene delimiters)
-- Stores the generated script in the `openai_script` column in the `jobs` table
+- Sends the transcripts to **OpenAI** to generate a new script that gives fresh perspective to the original content while maintaining similar length and core message
+- **Generates content optimized for Anam AI avatar video generation**
+- Stores the generated script and content metadata in the `openai_script` and `job_title` columns in the `jobs` table
 - Updates the job status in Supabase to `"script_generated"`
-- Sends a request to the HeyGen API to initiate video generation, providing the generated script and specifying the desired custom avatar, voice cloning, etc.
-- Receives the `video_id` from HeyGen and stores it in the `heygen_video_id` column in the `jobs` table
-- Updates the job status in Supabase to `"generating_video"`
-- Configures the HeyGen API call to use a webhook URL pointing to `/api/heygen-webhook`, so HeyGen will notify your application when the video is ready
+- Updates the job status to `"generating_video"`
+- **Creates an Anam AI session using the generated script**
+- **Stores the `anam_session_token` and `anam_session_id` in the database**
+- **Updates job status to `"video_generated"`**
 - **Includes try-catch blocks and error handling**
 
-## 5. `/api/heygen-webhook` (HeyGen Video Completion):
+## 5. Anam AI Integration:
 
-- Receives the webhook call from HeyGen (event: `avatar_video.success`)
-- Parses the webhook payload to extract the `video_id` and the `video_url` (the URL to download the generated video)
-- Uses the `video_id` to find the corresponding job in the `jobs` table in Supabase
-- Updates the job status in Supabase to `"video_downloading"`
-- Downloads the final video from HeyGen's `video_url`. Stream the video
-- Uploads the final video to Cloudinary (folder `final_videos`)
-- Stores the resulting video URL in the `final_video_url` column in the `jobs` table
-- Updates the job status in Supabase to `"video_ready"`
-- Calls `/api/socialbee-publish`, passing the job ID
+- **Uses Anam's session-based API to create interactive avatar sessions**
+- **Creates a persona configuration with the generated script as system prompt**
+- **Stores session tokens for potential future video generation or streaming**
+- **Currently sets up the foundation for video generation - full video download integration pending**
+- **Session tokens can be used with Anam's JavaScript SDK for real-time avatar interactions**
 
 ## 6. `/api/socialbee-publish` (Social Media Publishing):
 
