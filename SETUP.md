@@ -53,7 +53,6 @@ CREATE TABLE jobs (
     transcript_2 TEXT,
     transcript_3 TEXT,
     openai_script TEXT,
-    heygen_video_id TEXT,
     final_video_url TEXT,
     socialbee_post_id TEXT,
     error_message TEXT,
@@ -88,38 +87,22 @@ CREATE TRIGGER update_jobs_updated_at
     BEFORE UPDATE ON jobs 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
+
+-- Clean up invalid status values (keep only the ones in your enum)
+UPDATE jobs 
+SET status = 'error' 
+WHERE status NOT IN (
+    'submitted',
+    'downloading',
+    'transcribing',
+    'transcription_complete',
+    'generating_script',
+    'script_generated',
+    'generating_video',
+    'video_ready',
+    'scheduled_to_socialbee',
+    'error'
+);
+
+-- Set proper constraints for fields that should not be null
 ```
-
-## Current Phase Complete
-
-✅ **Dependencies installed**: @tobyg74/tiktok-api-dl, @supabase/supabase-js, @deepgram/sdk, openai  
-✅ **UI Components**: Shadcn components added (button, input, card, form, label, progress, alert)  
-✅ **Frontend Form**: TikTok URL submission form with progress tracking  
-✅ **Submit API**: `/api/submit` endpoint for job creation and workflow trigger  
-✅ **Status API**: `/api/job-status/[jobId]` endpoint for real-time updates  
-✅ **Transcribe API**: `/api/transcribe` endpoint for TikTok download and transcription  
-✅ **Database Integration**: Supabase client and job interface  
-
-## New Features in Phase 2
-
-🔄 **TikTok Download**: Uses `@tobyg74/tiktok-api-dl` library to extract audio/video streams  
-☁️ **Cloudinary Integration**: Uploads media and extracts audio from videos  
-🎙️ **Speech-to-Text**: Deepgram transcription with exponential backoff retry logic  
-📊 **Status Tracking**: Real-time job status updates (submitted → downloading → transcribing → transcription_complete)  
-🛡️ **Error Handling**: Comprehensive error handling with detailed logging  
-
-## Test the Current Setup
-
-1. Set up your `.env.local` with all API credentials (Supabase, Deepgram, Cloudinary)
-2. Run the updated SQL schema in Supabase
-3. Start the development server: `npm run dev`
-4. Visit `http://localhost:3000`
-5. Submit a TikTok URL and watch the status progress through the workflow
-
-The form will now:
-- Validate TikTok URL format
-- Create a job record in Supabase  
-- Trigger the transcription process automatically
-- Show real-time status updates: `submitted` → `downloading` → `transcribing` → `transcription_complete`
-- Handle errors with detailed error messages
-- Store transcripts in the database for future use 

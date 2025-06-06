@@ -29,7 +29,6 @@ export interface Job {
   transcript_2?: string | null;
   transcript_3?: string | null;
   openai_script?: string | null;
-  heygen_video_id?: string | null;
   final_video_url?: string | null;
   socialbee_post_id?: string | null;
   error_message?: string | null;

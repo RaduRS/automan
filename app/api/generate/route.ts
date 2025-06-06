@@ -10,18 +10,6 @@ const openai = new OpenAI({
 interface GeneratedContent {
   script: string;
   title: string;
-  hashtags: string;
-  hook: string;
-  speaking_instructions: {
-    tone: string;
-    pace: string;
-    emphasis_points: string[];
-  };
-  video_elements: {
-    background_suggestion: string;
-    text_overlays: string[];
-    call_to_action: string;
-  };
 }
 
 async function generateScript(
@@ -35,7 +23,7 @@ async function generateScript(
   const originalWordCount = combinedTranscripts.split(/\s+/).length;
   const targetWordCount = Math.round(originalWordCount * 0.9); // Aim for 90% of original length
 
-  const prompt = `Analyze these TikTok transcripts and create optimized content for HeyGen AI avatar video generation.
+  const prompt = `Analyze these TikTok transcripts and create a fresh script for content creation.
 
 TRANSCRIPTS:
 ${combinedTranscripts}
@@ -43,55 +31,30 @@ ${combinedTranscripts}
 ORIGINAL WORD COUNT: ${originalWordCount} words
 TARGET SCRIPT LENGTH: ${targetWordCount} words (±20%)
 
-Create content optimized for HeyGen AI avatar video generation:
-
-1. SPEAKING SCRIPT: Transform the original content with a FRESH PERSPECTIVE while maintaining similar length and core message. Make it conversational and natural for AI avatar delivery. The script should be approximately ${targetWordCount} words to maintain similar video duration.
-
-2. TITLE: Attention-grabbing title (under 100 characters)
-3. HASHTAGS: 3-5 relevant hashtags for social media  
-4. HOOK: Opening line that captures attention (under 25 words)
-5. SPEAKING INSTRUCTIONS: How the AI avatar should deliver the content
-6. VIDEO ELEMENTS: Visual suggestions to enhance the AI avatar video
+Transform the original content with a FRESH PERSPECTIVE while maintaining similar length and core message. Make it conversational and natural. The script should be approximately ${targetWordCount} words to maintain similar video duration.
 
 IMPORTANT GUIDELINES:
 - DON'T just summarize - give it fresh perspective while keeping the same depth
 - MAINTAIN similar speaking duration as original content
-- Make it conversational and natural for AI avatar
+- Make it conversational and natural
 - Keep the core insights and message intact
 - Respond with ONLY valid JSON, no markdown formatting
 
 {
-  "script": "Fresh perspective on the original content, conversational for AI avatar, approximately ${targetWordCount} words...",
-  "title": "Engaging title...",
-  "hashtags": "#hashtag1 #hashtag2 #hashtag3",
-  "hook": "Attention-grabbing opening line...",
-  "speaking_instructions": {
-    "tone": "conversational/professional/energetic/calm",
-    "pace": "normal/slow/fast", 
-    "emphasis_points": ["key phrase 1", "key phrase 2"]
-  },
-  "video_elements": {
-    "background_suggestion": "Simple background description for HeyGen template",
-    "text_overlays": ["Text overlay 1", "Text overlay 2"],
-    "call_to_action": "Clear call to action for viewers"
-  }
+  "script": "Fresh perspective on the original content, conversational and natural, approximately ${targetWordCount} words...",
+  "title": "Engaging title for the content..."
 }`;
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "o1-mini",
     messages: [
       {
-        role: "system",
-        content:
-          "You are an expert content creator specializing in transforming viral social media content into engaging AI avatar videos for HeyGen. Your job is to give fresh perspective to existing content while maintaining similar length and depth. Focus on creating natural, conversational scripts that AI avatars can deliver effectively, matching the original content's speaking duration. Always respond with valid JSON only, no markdown formatting.",
-      },
-      {
         role: "user",
-        content: prompt,
+        content: `You are an expert content creator specializing in transforming viral social media content into fresh, engaging scripts. Your job is to give fresh perspective to existing content while maintaining similar length and depth. Focus on creating natural, conversational scripts that can be used for video content creation. Always respond with valid JSON only, no markdown formatting.
+
+${prompt}`,
       },
     ],
-    temperature: 0.7,
-    max_tokens: 3000, // Increased to handle longer content
   });
 
   const response = completion.choices[0]?.message?.content;
@@ -225,10 +188,6 @@ export async function POST(request: NextRequest) {
       content: {
         title: generatedContent.title,
         script: generatedContent.script,
-        hook: generatedContent.hook,
-        hashtags: generatedContent.hashtags,
-        speaking_instructions: generatedContent.speaking_instructions,
-        video_elements: generatedContent.video_elements,
       },
     };
 

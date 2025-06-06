@@ -7,7 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Copy,
+  FileText,
+} from "lucide-react";
 
 interface JobStatus {
   id: string;
@@ -23,6 +30,8 @@ interface JobStatus {
     | "scheduled_to_socialbee"
     | "error";
   error_message?: string;
+  openai_script?: string | null;
+  job_title?: string | null;
   created_at: string;
 }
 
@@ -55,6 +64,7 @@ export function TikTokForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +127,8 @@ export function TikTokForm() {
           if (
             status.status === "scheduled_to_socialbee" ||
             status.status === "error" ||
-            status.status === "video_ready"
+            status.status === "video_ready" ||
+            status.status === "script_generated"
           ) {
             clearInterval(pollInterval);
           }
@@ -155,6 +166,29 @@ export function TikTokForm() {
     setJobStatus(null);
     setError(null);
     setIsSubmitting(false);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+    } catch {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+      } catch {
+        // Silent failure
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   return (
@@ -268,6 +302,51 @@ export function TikTokForm() {
                   value={getCurrentStep()!.progress}
                   className="w-full"
                 />
+              </div>
+            )}
+
+            {/* AI Script Display */}
+            {jobStatus.openai_script && jobStatus.openai_script.trim() && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-green-500" />
+                    <span className="text-sm font-medium">
+                      Generated Content
+                    </span>
+                  </div>
+                  <Button
+                    variant={isCopied ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => copyToClipboard(jobStatus.openai_script!)}
+                    className="h-8"
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    {isCopied ? "Copied!" : "Copy Script"}
+                  </Button>
+                </div>
+
+                {/* Title Display */}
+                {jobStatus.job_title && jobStatus.job_title.trim() && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <div className="text-xs text-blue-600 font-medium mb-1">
+                      TITLE
+                    </div>
+                    <div className="text-sm font-semibold text-blue-900">
+                      {jobStatus.job_title}
+                    </div>
+                  </div>
+                )}
+
+                {/* Script Display */}
+                <div className="bg-muted/50 rounded-md p-3 max-h-48 overflow-y-auto">
+                  <div className="text-xs text-muted-foreground font-medium mb-2">
+                    SCRIPT
+                  </div>
+                  <pre className="text-sm whitespace-pre-wrap text-foreground">
+                    {jobStatus.openai_script}
+                  </pre>
+                </div>
               </div>
             )}
 

@@ -77,7 +77,6 @@ A table called `jobs` (or similar) to track the state of each TikTok-to-Social M
 - `transcript_2` (text, optional)
 - `transcript_3` (text, optional)
 - `openai_script` (text, optional)
-- `heygen_video_id` (text, optional)
 - `final_video_url` (text, optional, Cloudinary URL)
 - `socialbee_post_id` (text, optional)
 - **`error_message` (text, optional)**

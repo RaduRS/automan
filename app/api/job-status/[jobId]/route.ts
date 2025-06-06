@@ -18,7 +18,9 @@ export async function GET(
     // Fetch job status from database
     const { data, error } = await supabase
       .from("jobs")
-      .select("id, status, error_message, created_at, updated_at")
+      .select(
+        "id, status, error_message, created_at, updated_at, openai_script, job_title"
+      )
       .eq("id", jobId)
       .single();
 
