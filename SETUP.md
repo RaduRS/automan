@@ -12,6 +12,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 # API Keys (Required for Phase 2)
 DEEPGRAM_API_KEY=your_deepgram_api_key
 OPENAI_API_KEY=your_openai_api_key  
+PERPLEXITY_API_KEY=your_perplexity_api_key
+REPLICATE_API_TOKEN=your_replicate_api_token
 HEYGEN_API_KEY=your_heygen_api_key
 SOCIALBEE_API_KEY=your_socialbee_api_key
 
