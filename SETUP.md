@@ -55,6 +55,8 @@ CREATE TABLE jobs (
     transcript_2 TEXT,
     transcript_3 TEXT,
     openai_script TEXT,
+    job_description TEXT,
+    job_hashtags TEXT,
     final_video_url TEXT,
     socialbee_post_id TEXT,
     error_message TEXT,
@@ -107,4 +109,41 @@ WHERE status NOT IN (
 );
 
 -- Set proper constraints for fields that should not be null
+```
+
+## Database Migration for Existing Users
+
+If you already have the jobs table set up, run this SQL to add the new columns for description and hashtags:
+
+```sql
+-- Add new columns for description and hashtags
+ALTER TABLE jobs 
+ADD COLUMN IF NOT EXISTS job_description TEXT,
+ADD COLUMN IF NOT EXISTS job_hashtags TEXT;
+
+-- Create image generation tracking table
+CREATE TABLE IF NOT EXISTS image_generations (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    sentence TEXT NOT NULL,
+    prompt_generated TEXT,
+    image_url TEXT,
+    cost DECIMAL(10,6) DEFAULT 0.003,
+    downloaded BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create index for faster queries
+CREATE INDEX IF NOT EXISTS idx_image_generations_created_at ON image_generations(created_at DESC);
+
+-- Create a view for total spend tracking
+CREATE OR REPLACE VIEW image_generation_stats AS
+SELECT 
+    COUNT(*) as total_generations,
+    SUM(cost) as total_cost,
+    MAX(created_at) as last_generation
+FROM image_generations;
+
+-- Add downloaded column to existing table
+ALTER TABLE image_generations 
+ADD COLUMN IF NOT EXISTS downloaded BOOLEAN DEFAULT false;
 ```

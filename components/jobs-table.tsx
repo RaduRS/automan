@@ -225,6 +225,26 @@ function ScriptViewer({ job }: ScriptViewerProps) {
             </div>
           )}
 
+          {job.job_description && (
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Description:</h3>
+              <p className="text-sm bg-blue-50 border border-blue-200 p-3 rounded">
+                {job.job_description}
+              </p>
+            </div>
+          )}
+
+          {job.job_hashtags && (
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Hashtags:</h3>
+              <div className="text-sm bg-purple-50 border border-purple-200 p-3 rounded">
+                <span className="font-mono text-purple-700">
+                  {job.job_hashtags}
+                </span>
+              </div>
+            </div>
+          )}
+
           {job.openai_script && (
             <div>
               <h3 className="font-semibold text-sm mb-2">Generated Script:</h3>

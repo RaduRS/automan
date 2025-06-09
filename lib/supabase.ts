@@ -29,6 +29,8 @@ export interface Job {
   transcript_2?: string | null;
   transcript_3?: string | null;
   openai_script?: string | null;
+  job_description?: string | null;
+  job_hashtags?: string | null;
   final_video_url?: string | null;
   socialbee_post_id?: string | null;
   error_message?: string | null;

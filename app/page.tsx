@@ -1,5 +1,6 @@
 import { TikTokForm } from "@/components/tiktok-form";
 import { Button } from "@/components/ui/button";
+import { ImageIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -11,9 +12,17 @@ export default function Home() {
           <div>
             <h1 className="text-4xl font-bold tracking-tight">Automan</h1>
           </div>
-          <Link href="/dashboard">
-            <Button variant="outline">View Dashboard</Button>
-          </Link>
+          <div className="flex gap-3">
+            <Link href="/image-generator">
+              <Button variant="outline" className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Image Generator
+              </Button>
+            </Link>
+            <Link href="/dashboard">
+              <Button variant="outline">View Dashboard</Button>
+            </Link>
+          </div>
         </div>
 
         <div className="text-center mb-8">

@@ -1,5 +1,6 @@
 import { JobsTable } from "@/components/jobs-table";
 import { Button } from "@/components/ui/button";
+import { ImageIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardPage() {
@@ -15,9 +16,17 @@ export default function DashboardPage() {
               Manage and monitor your content automation jobs
             </p>
           </div>
-          <Link href="/">
-            <Button variant="outline">Create New Job</Button>
-          </Link>
+          <div className="flex gap-3">
+            <Link href="/image-generator">
+              <Button variant="outline" className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Image Generator
+              </Button>
+            </Link>
+            <Link href="/">
+              <Button variant="outline">Create New Job</Button>
+            </Link>
+          </div>
         </div>
 
         <JobsTable />

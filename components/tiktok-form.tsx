@@ -34,6 +34,8 @@ interface JobStatus {
   error_message?: string;
   openai_script?: string | null;
   job_title?: string | null;
+  job_description?: string | null;
+  job_hashtags?: string | null;
   created_at: string;
 }
 
@@ -386,6 +388,31 @@ export function TikTokForm() {
                     </div>
                     <div className="text-sm font-semibold text-blue-900">
                       {jobStatus.job_title}
+                    </div>
+                  </div>
+                )}
+
+                {/* Description Display */}
+                {jobStatus.job_description &&
+                  jobStatus.job_description.trim() && (
+                    <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                      <div className="text-xs text-green-600 font-medium mb-1">
+                        DESCRIPTION
+                      </div>
+                      <div className="text-sm text-green-900">
+                        {jobStatus.job_description}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Hashtags Display */}
+                {jobStatus.job_hashtags && jobStatus.job_hashtags.trim() && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-md p-3">
+                    <div className="text-xs text-purple-600 font-medium mb-1">
+                      HASHTAGS
+                    </div>
+                    <div className="text-sm font-mono text-purple-900">
+                      {jobStatus.job_hashtags}
                     </div>
                   </div>
                 )}
