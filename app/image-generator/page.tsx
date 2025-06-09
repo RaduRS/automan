@@ -15,17 +15,21 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 
 export default function ImageGeneratorPage() {
   const [sentence, setSentence] = useState("");
+  const [scriptContext, setScriptContext] = useState("");
+  const [scriptLoadedFromDB, setScriptLoadedFromDB] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch stats and gallery on page load
+  // Fetch stats, gallery and latest script on page load
   useEffect(() => {
     fetchStats();
     fetchGallery(1);
+    fetchLatestScript();
   }, []);
 
   // Fetch gallery when page changes
@@ -56,12 +60,29 @@ export default function ImageGeneratorPage() {
       console.error("Failed to fetch gallery:", err);
     }
   };
+
+  const fetchLatestScript = async () => {
+    try {
+      const response = await fetch("/api/latest-script");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.script) {
+          setScriptContext(data.script);
+          setScriptLoadedFromDB(true);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch latest script:", err);
+    }
+  };
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<{
     url: string;
     prompt: string;
     id?: string;
   } | null>(null);
+  const [deleteMenuOpen, setDeleteMenuOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<{
     totalGenerations: number;
@@ -100,7 +121,10 @@ export default function ImageGeneratorPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ sentence: sentence.trim() }),
+        body: JSON.stringify({
+          sentence: sentence.trim(),
+          scriptContext: scriptContext.trim() || undefined,
+        }),
       });
 
       if (response.ok) {
@@ -155,6 +179,8 @@ export default function ImageGeneratorPage() {
 
   const handleReset = () => {
     setSentence("");
+    setScriptContext("");
+    setScriptLoadedFromDB(false);
     setGeneratedImage(null);
     setError(null);
   };
@@ -187,6 +213,69 @@ export default function ImageGeneratorPage() {
     } catch {
       setError("Failed to download image");
     }
+  };
+
+  const handleRegenerateImage = async () => {
+    if (!generatedImage?.prompt) return;
+
+    setIsRegenerating(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/regenerate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: generatedImage.prompt,
+          sentence: sentence.trim() || "Regenerated image",
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setGeneratedImage(data.image);
+        // Refresh stats and gallery after successful generation
+        fetchStats();
+        fetchGallery(currentPage);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to regenerate image");
+      }
+    } catch {
+      setError("Failed to regenerate image. Please try again.");
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    try {
+      const response = await fetch("/api/delete-image", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ imageId }),
+      });
+
+      if (response.ok) {
+        // Close delete menu and refresh gallery after successful deletion
+        setDeleteMenuOpen(null);
+        fetchGallery(currentPage);
+        // Note: We don't refresh stats because they should preserve historical data
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to delete image");
+      }
+    } catch {
+      setError("Failed to delete image. Please try again.");
+    }
+  };
+
+  const toggleDeleteMenu = (imageId: string) => {
+    setDeleteMenuOpen(deleteMenuOpen === imageId ? null : imageId);
   };
 
   return (
@@ -268,10 +357,54 @@ export default function ImageGeneratorPage() {
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="scriptContext">
+                      Script Context (Optional)
+                    </Label>
+                    {scriptLoadedFromDB && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                          ✓ Latest script loaded
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={fetchLatestScript}
+                          disabled={isGenerating}
+                          className="text-xs px-2 py-1 h-6"
+                        >
+                          Refresh
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <textarea
+                    id="scriptContext"
+                    value={scriptContext}
+                    onChange={(e) => {
+                      setScriptContext(e.target.value);
+                      setScriptLoadedFromDB(false);
+                    }}
+                    placeholder="Paste your full OpenAI script here to provide context. This helps generate more relevant images that align with your overall message..."
+                    disabled={isGenerating}
+                    className="min-h-[120px] w-full px-3 py-2 text-sm border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-vertical"
+                    rows={5}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    {scriptLoadedFromDB
+                      ? "✓ Auto-loaded with your latest OpenAI script. Edit as needed or refresh to get the most recent version."
+                      : "Optional: Paste your full script to help generate more relevant and contextual images for your specific sentence"}
+                  </p>
+                </div>
+
                 <div className="flex gap-2">
                   <Button
                     type="submit"
-                    disabled={isGenerating || !sentence.trim()}
+                    disabled={
+                      isGenerating || isRegenerating || !sentence.trim()
+                    }
                     className="flex-1"
                   >
                     {isGenerating && (
@@ -310,14 +443,18 @@ export default function ImageGeneratorPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-sm mb-2">
-                    Original Sentence:
-                  </h3>
-                  <p className="text-sm bg-blue-50 border border-blue-200 p-3 rounded">
-                    {sentence}
-                  </p>
-                </div>
+                {scriptContext && (
+                  <div>
+                    <h3 className="font-semibold text-sm mb-2">
+                      Script Context Used:
+                    </h3>
+                    <p className="text-sm bg-green-50 border border-green-200 p-3 rounded max-h-24 overflow-y-auto">
+                      {scriptContext.length > 200
+                        ? `${scriptContext.substring(0, 200)}...`
+                        : scriptContext}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <h3 className="font-semibold text-sm mb-2">
                     Generated Prompt:
@@ -341,10 +478,23 @@ export default function ImageGeneratorPage() {
                     <ImageIcon className="h-5 w-5 text-green-500" />
                     Generated Image
                   </CardTitle>
-                  <Button onClick={downloadImage} size="sm">
-                    <Download className="h-3 w-3 mr-2" />
-                    Download
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleRegenerateImage}
+                      size="sm"
+                      variant="outline"
+                      disabled={isRegenerating}
+                    >
+                      {isRegenerating && (
+                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                      )}
+                      {isRegenerating ? "Regenerating..." : "Regenerate"}
+                    </Button>
+                    <Button onClick={downloadImage} size="sm">
+                      <Download className="h-3 w-3 mr-2" />
+                      Download
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -385,12 +535,40 @@ export default function ImageGeneratorPage() {
               <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-3 mb-6">
                 {galleryData.images.map((image) => (
                   <div key={image.id} className="space-y-1.5">
-                    <div className="relative aspect-[9/16] bg-muted rounded-md overflow-hidden">
+                    <div className="relative aspect-[9/16] bg-muted rounded-md overflow-hidden group">
                       <img
                         src={image.image_url}
                         alt={`Generated for: ${image.sentence}`}
                         className="w-full h-full object-cover"
                       />
+                      {/* Delete button overlay */}
+                      <button
+                        onClick={() => toggleDeleteMenu(image.id)}
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        title="Delete image"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+
+                      {/* Delete confirmation dropdown */}
+                      {deleteMenuOpen === image.id && (
+                        <div className="absolute top-8 right-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-20">
+                          <div className="p-2 space-y-1">
+                            <button
+                              onClick={() => handleDeleteImage(image.id)}
+                              className="w-full px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setDeleteMenuOpen(null)}
+                              className="w-full px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                            >
+                              No
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1 text-center">
                       {image.prompt_generated}

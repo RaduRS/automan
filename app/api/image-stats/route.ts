@@ -3,7 +3,25 @@ import { supabase } from "@/lib/supabase";
 
 export async function GET() {
   try {
-    // Get stats from the view we created
+    // Try to get cumulative stats from dedicated table first
+    const { data: cumulativeData, error: cumulativeError } = await supabase
+      .from("cumulative_image_stats")
+      .select("*")
+      .single();
+
+    if (!cumulativeError && cumulativeData) {
+      // We have cumulative stats - use them (they never decrease)
+      return NextResponse.json({
+        success: true,
+        stats: {
+          totalGenerations: cumulativeData.total_generations || 0,
+          totalCost: parseFloat(cumulativeData.total_cost) || 0,
+          lastGeneration: cumulativeData.last_generation,
+        },
+      });
+    }
+
+    // Fallback to current table stats (for existing users)
     const { data, error } = await supabase
       .from("image_generation_stats")
       .select("*")

@@ -24,7 +24,7 @@ async function generateScript(
   // Count words in original content for reference
   const originalWordCount = combinedTranscripts.split(/\s+/).length;
 
-  const prompt = `Analyze these motivational/discipline TikTok transcripts and create a JAW-DROPPING, SCROLL-STOPPING script for content creation.
+  const prompt = `Transform these motivational/discipline TikTok transcripts into an authentic, scroll-stopping script that preserves the raw, conversational energy.
 
 TRANSCRIPTS:
 ${combinedTranscripts}
@@ -36,66 +36,60 @@ TARGET AUDIENCE: Ambitious men aged 20-40 seeking discipline, self-improvement, 
 
 CONTENT FOCUS: Motivational Content & Discipline Transformation, Daily discipline strategies, Success scenarios, Men's self-improvement, Ancient wisdom for modern challenges.
 
-TONE REQUIREMENTS:
-- Authoritative yet approachable
-- Confident and Direct
-- Inspiring but Grounded
-- Fresh and Modern
-- Use power words that EMPHASIZE and CONVINCE
+CRITICAL TONE REQUIREMENTS:
+- PRESERVE the conversational, authentic voice from the original transcripts
+- Keep the natural flow and rhythm - don't make it sound scripted
+- Use the SAME energy level as the original content
+- Maintain any slang, casual language, or personality quirks that make it authentic
+- Sound like someone talking to a friend, not giving a corporate presentation
+
+BANNED PHRASES & WORDS (DO NOT USE):
+- "The brutal truth is..."
+- "Unleash", "Dominate", "Conquer", "Destroy", "Elevate"  
+- "Transform your mindset"
+- "Ancient wisdom"
+- "Unlock your potential"
+- "It's time to..." (unless naturally occurring in original)
+- Generic hustle culture buzzwords
+- Corporate motivational speak
 
 SCRIPT STRUCTURE REQUIREMENTS:
-1. POWERFUL HOOK (First 3-5 seconds): Must be attention-grabbing, controversial, or surprising statement that makes viewers STOP scrolling
-2. PROBLEM IDENTIFICATION: Call out the exact struggle your audience faces
-3. SOLUTION/INSIGHT: Provide practical, actionable wisdom
-4. TRANSFORMATION PROMISE: Paint the picture of who they can become
-5. CALL TO ACTION: Direct, masculine, action-oriented ending
+1. AUTHENTIC HOOK (First 3-5 seconds): Use natural, conversational opening that feels real - questions, observations, or relatable statements
+2. KEEP IT REAL: Maintain the speaking style and energy of the original content
+3. PRACTICAL INSIGHT: Give actionable advice in natural language
+4. RELATABLE CONCLUSION: End with something that feels genuine, not forced
+5. NATURAL CALL TO ACTION: If included, make it feel organic to the conversation
 
-POWERFUL LANGUAGE PATTERNS (ROTATE FOR VARIETY):
+AUTHENTIC LANGUAGE PATTERNS (Choose what fits naturally):
+- Direct questions: "You know what's crazy?" "Know what I realized?"
+- Real observations: "Here's the thing..." "Look..."
+- Personal insights: "I figured out..." "Here's what changed for me..."
+- Conversational challenges: "Stop playing that game..." "Cut that out..."
+- Natural transitions: "But here's the deal..." "The thing is..."
 
-**Psychological Triggers (pick ONE that fits the content best):**
-- "Most men will never..." / "The average guy doesn't..."
-- "Here's what separates champions from the rest..."
-- "The brutal truth is..."
-- "This is what nobody tells you about..."
-- "While others make excuses, you..."
-- "Here's why 99% fail at..."
-- "Stop doing what everyone else does..."
-- "The difference between success and failure is..."
+PRESERVE AUTHENTICITY:
+- Keep any natural speech patterns from the original transcripts
+- Don't over-polish the language - rough edges make it real
+- Use contractions and casual language when appropriate
+- Maintain the emotional tone and intensity of the original
+- Let personality shine through instead of corporate polish
 
-**Engagement Hooks:**
-- "If you're serious about..."
-- "This changed everything for me..."
-- "Stop lying to yourself..."
-- "The secret that changed everything..."
-- "What if I told you..."
-
-**Power Words:** DOMINATE, CONQUER, MASTER, UNLEASH, TRANSFORM, ELEVATE, BREAKTHROUGH, DESTROY, BUILD, CREATE
-
-CRITICAL: Choose the psychological trigger that best matches the specific content and tone. Avoid overused phrases - select based on what creates maximum impact for THIS particular message.
-
-AVOID:
-- Weak language or hesitation
-- Generic motivational clichés
-- Complicated concepts without practical application
-- Anything that sounds like basic self-help
-
-The script must be IMMEDIATELY engaging from word one, maintain intensity throughout, and end with viewers feeling compelled to take action. This is going to CapCut AI for voice generation - make it POWERFUL.
-
-VARIETY REQUIREMENTS:
-- Select the psychological trigger that best fits THIS specific content
-- Choose hook style based on the message (question, statement, challenge, revelation)
-- Use power words that naturally fit the transformation being described
-- Make each script feel authentic to its specific message, not formulaic
+AVOID AT ALL COSTS:
+- Template language that sounds like every other motivational post
+- Buzzword-heavy sentences
+- Overly formal or "professional" tone
+- Generic self-help speak
+- Anything that doesn't sound like natural conversation
 
 DESCRIPTION & HASHTAG REQUIREMENTS:
-- Description: 1-2 sentences max, punchy call-to-action, include relevant emojis
-- Hashtags: Mix of 3-5 UNIQUE tags combining broad appeal (#Motivation) with specific niche (#GrindSeason, #DisciplineTransformation). NO DUPLICATES.
-- Style reference: "Unlock your potential! 🌟 Remember, it's you against yourself. Stay focused, eliminate distractions, and prioritize your goals. Transform your life today! 💪 #Motivation #SelfGrowth #GrindSeason #DreamBig ✨"
+- Description: 1-2 sentences max, conversational tone with relevant emojis
+- Hashtags: Mix of 3-5 UNIQUE tags combining broad appeal (#Motivation) with specific niche. Avoid overused tags like #GrindSeason
+- Keep it authentic, not corporate
 
 {
-  "script": "Transform the content into a jaw-dropping, scroll-stopping script with powerful hook, clear problem/solution, ONE psychological trigger that fits this specific message, and strong call to action. 150-200 words maximum for optimal 40-60 second video length...",
-  "title": "Powerful, masculine title that promises transformation or reveals a hard truth...",
-  "description": "Punchy 1-2 sentence description with emojis and call-to-action that complements the script...",
+  "script": "Transform the content while preserving the authentic conversational voice and natural energy. Keep it real, relatable, and true to the original speaking style. 150-200 words maximum...",
+  "title": "Authentic, attention-grabbing title that sounds like real conversation, not corporate speak...",
+  "description": "Natural, conversational description with emojis that complements the authentic script...",
   "hashtags": "#Motivation #SpecificNiche #BroadAppeal #ActionOriented"
 }`;
 

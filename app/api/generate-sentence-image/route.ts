@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Replicate from "replicate";
+import OpenAI from "openai";
 import { supabase } from "@/lib/supabase";
 
 // Configure Replicate
@@ -13,21 +14,30 @@ interface ImageResult {
   id?: string;
 }
 
-async function generateImagePrompt(sentence: string): Promise<string> {
+async function generateImagePrompt(
+  sentence: string,
+  scriptContext?: string
+): Promise<string> {
   try {
-    // Use Perplexity to generate a creative image prompt based on the sentence
-    const response = await fetch("https://api.perplexity.ai/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-sonar-small-128k-online",
-        messages: [
-          {
-            role: "user",
-            content: `Create a visual image description inspired by this concept: "${sentence}"
+    // Create the context-aware prompt for OpenAI
+    const contextPrompt = scriptContext
+      ? `Based on this full motivational script context:
+"${scriptContext}"
+
+Now create a visual image description specifically for this sentence from the script: "${sentence}"`
+      : `Create a visual image description inspired by this concept: "${sentence}"`;
+
+    // Use OpenAI o1-mini to generate a creative image prompt based on the sentence
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const completion = await openai.chat.completions.create({
+      model: "o1-mini",
+      messages: [
+        {
+          role: "user",
+          content: `${contextPrompt}
 
 CRITICAL REQUIREMENTS:
 - Black and white photography with MODERATE contrast (avoid pure black areas)
@@ -35,59 +45,64 @@ CRITICAL REQUIREMENTS:
 - Balanced lighting (dramatic but not harsh)
 - ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO WRITING, NO CAPTIONS anywhere in the image
 - DO NOT include the original sentence or any text in the image
-- Male subject (men aged 20-40 demographic)
-- Simple, clean composition
+- Professional, clean composition suitable for social media
+- FAMILY-FRIENDLY content only - avoid any suggestive or inappropriate elements
 
-SUBJECT SELECTION - Choose from these categories what BEST MATCHES the sentence meaning:
-- Discipline/routine: Early morning workout, gym scene, meal prep, daily planning
-- Honesty/truth: Person in reflection, journaling, mirror moment, contemplative pose
-- Goals/achievement: Person celebrating, team success, victory moment, progress tracking
-- Gratitude/performance: Person in meditation, appreciating nature, quiet moment of thanks
-- Consistency: Daily habits, routine activities, steady progress, commitment in action
-- Transformation: Before/after moment, person making choices, life-changing decision
-- Focus: Person concentrated on task, deep work, studying, strategic thinking
-- Strength/power: Physical training, overcoming challenges, leadership moment, confident stance
-- Community/togetherness: Group of people celebrating, team working together, crowd cheering
-- Happiness/joy: People laughing, celebrating success, moments of pure joy, friends gathering
-- Leadership: Person speaking to crowd, guiding others, confident presentation
-- Success/achievement: Celebration scenes, victory moments, accomplishment recognition
+KEEP IT SIMPLE AND REALISTIC:
+- Show REAL objects that actually exist and can be photographed
+- Avoid abstract concepts, impossible arrangements, or surreal combinations
+- Use simple, clean compositions with 1-3 main objects maximum
+- Think like a photographer capturing a real scene, not creating abstract art
+- Focus on concrete, tangible things people recognize immediately
 
-CREATIVE DIRECTION:
-Be creative and interpretive within your chosen category. Don't match keywords literally - focus on capturing the EMOTION and deeper MEANING of the sentence. Create powerful, symbolic imagery that resonates with ambitious individuals seeking motivation and transformation.
+MATCH THE SENTENCE TYPE WITH REALISTIC IMAGERY:
+
+ACTION/CALL-TO-ACTION sentences ("take action", "start now", "do it"): 
+Show simple real actions: a person's hand reaching for a door handle, finger pressing a button, hand holding a pen over paper, someone stepping forward
+
+MINDSET/INTERNAL sentences ("mindset", "believe", "think"): 
+Show real contemplative scenes: a person silhouetted by a window, someone sitting alone on a bench, a mirror reflecting a figure, hands clasped in thought
+
+TIME/DISCIPLINE sentences ("daily", "consistent", "routine"):
+Show actual time objects: a simple analog clock on a wall, a calendar with dates marked, an alarm clock, a watch on someone's wrist
+
+GAMING/DISTRACTION sentences ("video games", "social media", "scrolling"):
+Show real devices: a gaming controller on a table, smartphone lying flat, computer screen glow, headphones on a desk
+
+STRENGTH/POWER sentences ("strong", "powerful", "discipline"):
+Show real powerful objects: clenched fist, person doing push-ups, weights on the ground, someone running up real stairs
+
+AVOID AT ALL COSTS:
+- Abstract arrangements or impossible combinations
+- Circular loops, intertwined objects, or surreal concepts
+- Complex artistic metaphors that can't be photographed
+- Multiple objects floating or arranged in impossible ways
 
 LIGHTING: Soft but defined shadows - ensure ALL areas of image have visible detail, no pure black zones.
 
-Return ONLY a clean, simple sentence describing the visual scene. No formatting, no asterisks, no dashes, no bullet points, no markdown. Just a clear descriptive sentence.`,
-          },
-        ],
-        max_tokens: 200,
-        temperature: 0.8,
-      }),
+Return ONLY a clean, simple sentence describing ONE realistic scene that could actually be photographed. No formatting, no asterisks, no dashes, no bullet points, no markdown. Just a clear descriptive sentence of a real, simple scene.`,
+        },
+      ],
     });
 
-    if (!response.ok) {
-      throw new Error(`Perplexity API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const prompt = data.choices?.[0]?.message?.content?.trim();
+    const prompt = completion.choices[0]?.message?.content?.trim();
 
     if (!prompt) {
-      throw new Error("No prompt generated from Perplexity");
+      throw new Error("No prompt generated from OpenAI");
     }
 
     return prompt;
   } catch (error) {
-    console.error("Error generating prompt with Perplexity:", error);
+    console.error("Error generating prompt with OpenAI:", error);
     // Fallback: generate a basic prompt based on the sentence
-    return `Strong silhouette of a person against bright clouds with visible details in both foreground and background, representing determination and discipline`;
+    return `A professional business setting with clean lighting and motivational atmosphere, representing determination and focus`;
   }
 }
 
 async function generateImage(prompt: string): Promise<string> {
   try {
     const input = {
-      prompt: `${prompt}. Black and white photography with SOFT contrast, gentle shadows with visible details, balanced lighting that avoids harsh darkness, professional quality. Male subject aged 20-40. CRITICAL: ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO WRITING, NO CAPTIONS, NO TYPOGRAPHY anywhere in the image. This is a pure visual image with NO TEXT ELEMENTS AT ALL. Ensure ALL areas have visible detail - no pure black or pure white zones`,
+      prompt: `${prompt}. Black and white photography with SOFT contrast, gentle shadows with visible details, balanced lighting that avoids harsh darkness, professional quality, motivational and dynamic imagery. CRITICAL: ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO WRITING, NO CAPTIONS, NO TYPOGRAPHY anywhere in the image. This is a pure visual image with NO TEXT ELEMENTS AT ALL. Ensure ALL areas have visible detail - no pure black or pure white zones. Action-oriented, powerful, and inspiring content`,
       go_fast: true,
       num_outputs: 1,
       aspect_ratio: "9:16", // Vertical format
@@ -113,7 +128,7 @@ async function generateImage(prompt: string): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     const requestBody = await request.json();
-    const { sentence } = requestBody;
+    const { sentence, scriptContext } = requestBody;
 
     if (!sentence || typeof sentence !== "string" || !sentence.trim()) {
       return NextResponse.json(
@@ -123,10 +138,18 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`Generating image for sentence: "${sentence}"`);
+    if (scriptContext) {
+      console.log(
+        `Using script context: "${scriptContext.substring(0, 100)}..."`
+      );
+    }
 
-    // Step 1: Generate image prompt using Perplexity
-    console.log("Generating image prompt with Perplexity...");
-    const imagePrompt = await generateImagePrompt(sentence.trim());
+    // Step 1: Generate image prompt using OpenAI o1-mini
+    console.log("Generating image prompt with OpenAI o1-mini...");
+    const imagePrompt = await generateImagePrompt(
+      sentence.trim(),
+      scriptContext?.trim()
+    );
     console.log("Generated prompt:", imagePrompt);
 
     // Step 2: Generate image using Replicate
@@ -148,6 +171,28 @@ export async function POST(request: NextRequest) {
 
     if (dbError) {
       console.error("Failed to track generation in database:", dbError);
+    }
+
+    // Update cumulative stats (historical usage that never decreases)
+    try {
+      await fetch(
+        `${
+          process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+        }/api/update-cumulative-stats`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            cost: 0.003,
+            increment: 1,
+          }),
+        }
+      );
+    } catch (statsError) {
+      console.error("Failed to update cumulative stats:", statsError);
+      // Don't fail the request if stats update fails
     }
 
     const result: ImageResult = {
