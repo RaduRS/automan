@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2,
   ArrowLeft,
@@ -16,6 +17,7 @@ import {
   ChevronRight,
   CheckCircle,
   Trash2,
+  Wand2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -23,6 +25,9 @@ export default function ImageGeneratorPage() {
   const [sentence, setSentence] = useState("");
   const [scriptContext, setScriptContext] = useState("");
   const [scriptLoadedFromDB, setScriptLoadedFromDB] = useState(false);
+  const [directPrompt, setDirectPrompt] = useState("");
+  const [originalPrompt, setOriginalPrompt] = useState("");
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch stats, gallery and latest script on page load
@@ -81,6 +86,7 @@ export default function ImageGeneratorPage() {
     url: string;
     prompt: string;
     id?: string;
+    generationType?: "ai-generated" | "direct-prompt";
   } | null>(null);
   const [deleteMenuOpen, setDeleteMenuOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +135,10 @@ export default function ImageGeneratorPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setGeneratedImage(data.image);
+        setGeneratedImage({
+          ...data.image,
+          generationType: "ai-generated",
+        });
         // Refresh stats and gallery after successful generation
         fetchStats();
         fetchGallery(currentPage);
@@ -235,7 +244,10 @@ export default function ImageGeneratorPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setGeneratedImage(data.image);
+        setGeneratedImage({
+          ...data.image,
+          generationType: generatedImage.generationType || "ai-generated",
+        });
         // Refresh stats and gallery after successful generation
         fetchStats();
         fetchGallery(currentPage);
@@ -276,6 +288,106 @@ export default function ImageGeneratorPage() {
 
   const toggleDeleteMenu = (imageId: string) => {
     setDeleteMenuOpen(deleteMenuOpen === imageId ? null : imageId);
+  };
+
+  const handleDirectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!directPrompt.trim()) return;
+
+    setIsGenerating(true);
+    setError(null);
+    setGeneratedImage(null);
+
+    try {
+      const response = await fetch("/api/generate-direct-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: directPrompt.trim(),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setGeneratedImage({
+          ...data.image,
+          generationType: "direct-prompt",
+        });
+        // Refresh stats and gallery after successful generation
+        fetchStats();
+        fetchGallery(currentPage);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to generate image");
+      }
+    } catch {
+      setError("Failed to generate image. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleEnhancePrompt = async () => {
+    if (!directPrompt.trim()) return;
+
+    // Store original prompt if not already stored
+    if (!originalPrompt) {
+      setOriginalPrompt(directPrompt.trim());
+    }
+
+    setIsEnhancing(true);
+    setError(null);
+
+    try {
+      // Always enhance from the original prompt, not the current enhanced version
+      const promptToEnhance = originalPrompt || directPrompt.trim();
+
+      const response = await fetch("/api/enhance-prompt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: promptToEnhance,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setDirectPrompt(data.enhancedPrompt);
+        // Store original if not already stored
+        if (!originalPrompt) {
+          setOriginalPrompt(promptToEnhance);
+        }
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to enhance prompt");
+      }
+    } catch {
+      setError("Failed to enhance prompt. Please try again.");
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleRevertToOriginal = () => {
+    if (originalPrompt) {
+      setDirectPrompt(originalPrompt);
+      setOriginalPrompt(""); // Clear the stored original
+    }
+  };
+
+  const handlePromptChange = (newPrompt: string) => {
+    setDirectPrompt(newPrompt);
+    // If user manually changes the prompt, clear the original
+    if (originalPrompt && newPrompt !== originalPrompt) {
+      // Only clear if they've changed it significantly (not just minor edits)
+      if (Math.abs(newPrompt.length - originalPrompt.length) > 10) {
+        setOriginalPrompt("");
+      }
+    }
   };
 
   return (
@@ -338,92 +450,189 @@ export default function ImageGeneratorPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sentence">Motivational Sentence</Label>
-                  <Input
-                    id="sentence"
-                    type="text"
-                    value={sentence}
-                    onChange={(e) => setSentence(e.target.value)}
-                    placeholder="e.g., Stop waiting for motivation – it's time to dominate your discipline!"
-                    disabled={isGenerating}
-                    required
-                    className="min-h-[60px] text-base"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Enter a powerful sentence from your script to generate a
-                    custom black & white vertical image
-                  </p>
-                </div>
+              <Tabs defaultValue="ai-generated" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="ai-generated">AI Generated</TabsTrigger>
+                  <TabsTrigger value="direct-prompt">Direct Prompt</TabsTrigger>
+                </TabsList>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="scriptContext">
-                      Script Context (Optional)
-                    </Label>
-                    {scriptLoadedFromDB && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                          ✓ Latest script loaded
-                        </span>
+                {/* AI Generated Tab */}
+                <TabsContent value="ai-generated" className="space-y-4 mt-4">
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="sentence">Motivational Sentence</Label>
+                      <Input
+                        id="sentence"
+                        type="text"
+                        value={sentence}
+                        onChange={(e) => setSentence(e.target.value)}
+                        placeholder="e.g., Stop waiting for motivation – it's time to dominate your discipline!"
+                        disabled={isGenerating}
+                        required
+                        className="min-h-[60px] text-base"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Enter a powerful sentence from your script to generate a
+                        custom black & white vertical image
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="scriptContext">
+                          Script Context (Optional)
+                        </Label>
+                        {scriptLoadedFromDB && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                              ✓ Latest script loaded
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={fetchLatestScript}
+                              disabled={isGenerating}
+                              className="text-xs px-2 py-1 h-6"
+                            >
+                              Refresh
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      <textarea
+                        id="scriptContext"
+                        value={scriptContext}
+                        onChange={(e) => {
+                          setScriptContext(e.target.value);
+                          setScriptLoadedFromDB(false);
+                        }}
+                        placeholder="Paste your full OpenAI script here to provide context. This helps generate more relevant images that align with your overall message..."
+                        disabled={isGenerating}
+                        className="min-h-[120px] w-full px-3 py-2 text-sm border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-vertical"
+                        rows={5}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        {scriptLoadedFromDB
+                          ? "✓ Auto-loaded with your latest OpenAI script. Edit as needed or refresh to get the most recent version."
+                          : "Optional: Paste your full script to help generate more relevant and contextual images for your specific sentence"}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="submit"
+                        disabled={
+                          isGenerating || isRegenerating || !sentence.trim()
+                        }
+                        className="flex-1"
+                      >
+                        {isGenerating && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        {isGenerating ? "Generating..." : "Generate Image"}
+                      </Button>
+
+                      {generatedImage && (
                         <Button
                           type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={fetchLatestScript}
-                          disabled={isGenerating}
-                          className="text-xs px-2 py-1 h-6"
+                          variant="outline"
+                          onClick={handleReset}
                         >
-                          Refresh
+                          New Image
                         </Button>
+                      )}
+                    </div>
+                  </form>
+                </TabsContent>
+
+                {/* Direct Prompt Tab */}
+                <TabsContent value="direct-prompt" className="space-y-4 mt-4">
+                  <form onSubmit={handleDirectSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="directPrompt">Image Prompt</Label>
+                        <div className="flex gap-2">
+                          {originalPrompt && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleRevertToOriginal}
+                              className="h-7 px-2 text-xs"
+                            >
+                              Revert
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleEnhancePrompt}
+                            disabled={isEnhancing || !directPrompt.trim()}
+                            className="h-7 px-2"
+                          >
+                            {isEnhancing && (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            )}
+                            <Wand2 className="h-3 w-3 mr-1" />
+                            {isEnhancing
+                              ? "Enhancing..."
+                              : originalPrompt
+                              ? "Re-enhance"
+                              : "Enhance"}
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <textarea
-                    id="scriptContext"
-                    value={scriptContext}
-                    onChange={(e) => {
-                      setScriptContext(e.target.value);
-                      setScriptLoadedFromDB(false);
-                    }}
-                    placeholder="Paste your full OpenAI script here to provide context. This helps generate more relevant images that align with your overall message..."
-                    disabled={isGenerating}
-                    className="min-h-[120px] w-full px-3 py-2 text-sm border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-vertical"
-                    rows={5}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    {scriptLoadedFromDB
-                      ? "✓ Auto-loaded with your latest OpenAI script. Edit as needed or refresh to get the most recent version."
-                      : "Optional: Paste your full script to help generate more relevant and contextual images for your specific sentence"}
-                  </p>
-                </div>
+                      <textarea
+                        id="directPrompt"
+                        value={directPrompt}
+                        onChange={(e) => handlePromptChange(e.target.value)}
+                        placeholder="e.g., A person standing at the edge of a cliff looking at the horizon, dramatic lighting, black and white photography"
+                        disabled={isGenerating || isEnhancing}
+                        required
+                        className="min-h-[120px] w-full px-3 py-2 text-sm border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-vertical"
+                        rows={5}
+                      />
+                      {originalPrompt && (
+                        <div className="text-xs text-muted-foreground bg-blue-50 border border-blue-200 p-2 rounded">
+                          <strong>Original:</strong> {originalPrompt}
+                        </div>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        Enter a direct prompt for the image generator. Click
+                        &ldquo;Enhance&rdquo; to improve your prompt with AI.
+                        Describe the scene, mood, and visual elements you want.
+                      </p>
+                    </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    type="submit"
-                    disabled={
-                      isGenerating || isRegenerating || !sentence.trim()
-                    }
-                    className="flex-1"
-                  >
-                    {isGenerating && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    {isGenerating ? "Generating..." : "Generate Image"}
-                  </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="submit"
+                        disabled={
+                          isGenerating || isRegenerating || !directPrompt.trim()
+                        }
+                        className="flex-1"
+                      >
+                        {isGenerating && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        {isGenerating ? "Generating..." : "Generate Image"}
+                      </Button>
 
-                  {generatedImage && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleReset}
-                    >
-                      New Image
-                    </Button>
-                  )}
-                </div>
-              </form>
+                      {generatedImage && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setDirectPrompt("")}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  </form>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 
@@ -443,21 +652,24 @@ export default function ImageGeneratorPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {scriptContext && (
-                  <div>
-                    <h3 className="font-semibold text-sm mb-2">
-                      Script Context Used:
-                    </h3>
-                    <p className="text-sm bg-green-50 border border-green-200 p-3 rounded max-h-24 overflow-y-auto">
-                      {scriptContext.length > 200
-                        ? `${scriptContext.substring(0, 200)}...`
-                        : scriptContext}
-                    </p>
-                  </div>
-                )}
+                {generatedImage.generationType === "ai-generated" &&
+                  scriptContext && (
+                    <div>
+                      <h3 className="font-semibold text-sm mb-2">
+                        Script Context Used:
+                      </h3>
+                      <p className="text-sm bg-green-50 border border-green-200 p-3 rounded max-h-24 overflow-y-auto">
+                        {scriptContext.length > 200
+                          ? `${scriptContext.substring(0, 200)}...`
+                          : scriptContext}
+                      </p>
+                    </div>
+                  )}
                 <div>
                   <h3 className="font-semibold text-sm mb-2">
-                    Generated Prompt:
+                    {generatedImage.generationType === "direct-prompt"
+                      ? "Your Prompt:"
+                      : "Generated Prompt:"}
                   </h3>
                   <p className="text-sm bg-purple-50 border border-purple-200 p-3 rounded">
                     {generatedImage.prompt}
