@@ -190,7 +190,7 @@ export default function ImageGeneratorPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
         <Link href="/dashboard">
@@ -236,87 +236,80 @@ export default function ImageGeneratorPage() {
         )}
       </div>
 
-      {/* Input Form */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-500" />
-            Generate Custom Image
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="sentence">Motivational Sentence</Label>
-              <Input
-                id="sentence"
-                type="text"
-                value={sentence}
-                onChange={(e) => setSentence(e.target.value)}
-                placeholder="e.g., Stop waiting for motivation – it's time to dominate your discipline!"
-                disabled={isGenerating}
-                required
-                className="min-h-[60px] text-base"
-              />
-              <p className="text-sm text-muted-foreground">
-                Enter a powerful sentence from your script to generate a custom
-                black & white vertical image
-              </p>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                disabled={isGenerating || !sentence.trim()}
-                className="flex-1"
-              >
-                {isGenerating && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isGenerating ? "Generating..." : "Generate Image"}
-              </Button>
-
-              {generatedImage && (
-                <Button type="button" variant="outline" onClick={handleReset}>
-                  New Image
-                </Button>
-              )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Error Display */}
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Generated Image Display */}
-      {generatedImage && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5 text-green-500" />
-              Generated Image
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Image */}
-              <div className="flex-1">
-                <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden max-w-sm mx-auto">
-                  <img
-                    src={generatedImage.url}
-                    alt="Generated motivational image"
-                    className="w-full h-full object-cover"
+      {/* Main Content - 2 Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Left Column - Input and Generation */}
+        <div className="space-y-6">
+          {/* Input Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                Generate Custom Image
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sentence">Motivational Sentence</Label>
+                  <Input
+                    id="sentence"
+                    type="text"
+                    value={sentence}
+                    onChange={(e) => setSentence(e.target.value)}
+                    placeholder="e.g., Stop waiting for motivation – it's time to dominate your discipline!"
+                    disabled={isGenerating}
+                    required
+                    className="min-h-[60px] text-base"
                   />
+                  <p className="text-sm text-muted-foreground">
+                    Enter a powerful sentence from your script to generate a
+                    custom black & white vertical image
+                  </p>
                 </div>
-              </div>
 
-              {/* Details & Actions */}
-              <div className="flex-1 space-y-4">
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    disabled={isGenerating || !sentence.trim()}
+                    className="flex-1"
+                  >
+                    {isGenerating && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {isGenerating ? "Generating..." : "Generate Image"}
+                  </Button>
+
+                  {generatedImage && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleReset}
+                    >
+                      New Image
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Error Display */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Generated Content Details */}
+          {generatedImage && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Generated Content Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-semibold text-sm mb-2">
                     Original Sentence:
@@ -325,7 +318,6 @@ export default function ImageGeneratorPage() {
                     {sentence}
                   </p>
                 </div>
-
                 <div>
                   <h3 className="font-semibold text-sm mb-2">
                     Generated Prompt:
@@ -334,16 +326,50 @@ export default function ImageGeneratorPage() {
                     {generatedImage.prompt}
                   </p>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-                <Button onClick={downloadImage} className="w-full">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Image
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        {/* Right Column - Generated Image Display */}
+        <div>
+          {generatedImage ? (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-green-500" />
+                    Generated Image
+                  </CardTitle>
+                  <Button onClick={downloadImage} size="sm">
+                    <Download className="h-3 w-3 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Image */}
+                <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden max-w-sm mx-auto">
+                  <img
+                    src={generatedImage.url}
+                    alt="Generated motivational image"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="h-full flex items-center justify-center">
+              <CardContent className="text-center py-12">
+                <ImageIcon className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-muted-foreground">
+                  Your generated image will appear here
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
 
       {/* Image Gallery */}
       <Card className="mt-8">
@@ -356,32 +382,33 @@ export default function ImageGeneratorPage() {
         <CardContent>
           {galleryData && galleryData.images.length > 0 ? (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-3 mb-6">
                 {galleryData.images.map((image) => (
-                  <div key={image.id} className="space-y-2">
-                    <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden">
+                  <div key={image.id} className="space-y-1.5">
+                    <div className="relative aspect-[9/16] bg-muted rounded-md overflow-hidden">
                       <img
                         src={image.image_url}
                         alt={`Generated for: ${image.sentence}`}
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
+                    <p className="text-xs text-muted-foreground line-clamp-1 text-center">
                       {image.prompt_generated}
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() =>
                           downloadGalleryImage(image.image_url, image.id)
                         }
-                        className="flex-1"
+                        className="px-2 py-1 text-xs h-7"
                       >
                         <Download className="h-3 w-3 mr-1" />
-                        Download
-                        {image.downloaded && (
-                          <CheckCircle className="h-3 w-3 ml-1 text-green-500" />
+                        {image.downloaded ? (
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                        ) : (
+                          "Get"
                         )}
                       </Button>
                     </div>

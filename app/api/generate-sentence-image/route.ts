@@ -38,15 +38,22 @@ CRITICAL REQUIREMENTS:
 - Male subject (men aged 20-40 demographic)
 - Simple, clean composition
 
-SUBJECT SELECTION - Choose what BEST MATCHES the specific sentence meaning:
-- If about discipline/routine: Early morning workout, gym scene, meal prep
-- If about honesty/truth: Person in reflection, journaling, mirror moment
-- If about goals/achievement: Person planning, celebrating progress, tracking results
-- If about gratitude/performance: Person in meditation, appreciating success
-- If about consistency: Daily habits in action, routine activities
-- If about transformation: Before/after moment, person making choices
-- If about focus: Person concentrated on important task
-- If about strength/power: Physical training, overcoming challenges
+SUBJECT SELECTION - Choose from these categories what BEST MATCHES the sentence meaning:
+- Discipline/routine: Early morning workout, gym scene, meal prep, daily planning
+- Honesty/truth: Person in reflection, journaling, mirror moment, contemplative pose
+- Goals/achievement: Person celebrating, team success, victory moment, progress tracking
+- Gratitude/performance: Person in meditation, appreciating nature, quiet moment of thanks
+- Consistency: Daily habits, routine activities, steady progress, commitment in action
+- Transformation: Before/after moment, person making choices, life-changing decision
+- Focus: Person concentrated on task, deep work, studying, strategic thinking
+- Strength/power: Physical training, overcoming challenges, leadership moment, confident stance
+- Community/togetherness: Group of people celebrating, team working together, crowd cheering
+- Happiness/joy: People laughing, celebrating success, moments of pure joy, friends gathering
+- Leadership: Person speaking to crowd, guiding others, confident presentation
+- Success/achievement: Celebration scenes, victory moments, accomplishment recognition
+
+CREATIVE DIRECTION:
+Be creative and interpretive within your chosen category. Don't match keywords literally - focus on capturing the EMOTION and deeper MEANING of the sentence. Create powerful, symbolic imagery that resonates with ambitious individuals seeking motivation and transformation.
 
 LIGHTING: Soft but defined shadows - ensure ALL areas of image have visible detail, no pure black zones.
 
