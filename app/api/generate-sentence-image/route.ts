@@ -33,7 +33,7 @@ Now create a visual image description specifically for this sentence from the sc
     });
 
     const completion = await openai.chat.completions.create({
-      model: "o1-mini",
+      model: "o3-mini",
       messages: [
         {
           role: "user",
