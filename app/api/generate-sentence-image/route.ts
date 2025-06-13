@@ -39,48 +39,42 @@ Now create a visual image description specifically for this sentence from the sc
           role: "user",
           content: `${contextPrompt}
 
+ANALYZE THE SENTENCE MEANING FIRST:
+Look at the SPECIFIC words, emotions, and concepts in this sentence. Don't use generic templates.
+
+For "${sentence}":
+- What is the main ACTION or concept?
+- What EMOTION or feeling does it convey?
+- What specific OBJECTS, SETTINGS, or SCENES would visually represent this?
+- Is it about learning, breakthrough, change, action, struggle, success, time, relationships, etc.?
+
 CRITICAL REQUIREMENTS:
 - Black and white photography with MODERATE contrast (avoid pure black areas)
 - Soft shadows with visible details throughout the frame
-- Balanced lighting (dramatic but not harsh)
-- ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO WRITING, NO CAPTIONS anywhere in the image
-- DO NOT include the original sentence or any text in the image
-- Professional, clean composition suitable for social media
-- FAMILY-FRIENDLY content only - avoid any suggestive or inappropriate elements
+- ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO WRITING anywhere in the image
+- Professional composition suitable for social media
+- FAMILY-FRIENDLY content only
 
-KEEP IT SIMPLE AND REALISTIC:
-- Show REAL objects that actually exist and can be photographed
-- Avoid abstract concepts, impossible arrangements, or surreal combinations
-- Use simple, clean compositions with 1-3 main objects maximum
-- Think like a photographer capturing a real scene, not creating abstract art
-- Focus on concrete, tangible things people recognize immediately
+SENTENCE-SPECIFIC VISUAL MAPPING:
+- LEARNING/REALIZATION ("attention", "teaching", "shifted", "understanding"): Books, lightbulb moments, open journals, studying scenes, breakthrough moments
+- GROWTH/PROGRESS ("building", "growing", "developing"): Plants growing, construction, stairs, ladders, before/after contrasts
+- TIME/CONSISTENCY ("daily", "routine", "habit"): Clocks, calendars, sunrise/sunset, repeated patterns
+- STRENGTH/POWER ("strong", "discipline", "force"): Gym equipment, natural forces, solid structures
+- OBSTACLES/CHALLENGES ("setback", "struggle", "difficult"): Hurdles, rocky paths, storms clearing, bridges
+- BREAKTHROUGH/CHANGE ("shifted", "breakthrough", "transformed"): Doors opening, walls breaking, light through darkness
+- FOCUS/ATTENTION ("focus", "concentrate", "attention"): Magnifying glass, telescope, spotlight, clear vs blurry
+- ACTION/MOVEMENT ("take action", "start", "move"): Running, walking, hands in motion, beginning gestures
 
-MATCH THE SENTENCE TYPE WITH REALISTIC IMAGERY:
+CREATE A UNIQUE VISUAL REPRESENTATION:
+Based on the sentence's SPECIFIC meaning, describe ONE clear, realistic scene that a photographer could actually capture.
 
-ACTION/CALL-TO-ACTION sentences ("take action", "start now", "do it"): 
-Show simple real actions: a person's hand reaching for a door handle, finger pressing a button, hand holding a pen over paper, someone stepping forward
+AVOID:
+- Generic "person sitting on bench" unless the sentence is specifically about sitting or resting
+- Repetitive imagery you've used before
+- Abstract concepts that can't be photographed
+- Multiple unrelated objects in one scene
 
-MINDSET/INTERNAL sentences ("mindset", "believe", "think"): 
-Show real contemplative scenes: a person silhouetted by a window, someone sitting alone on a bench, a mirror reflecting a figure, hands clasped in thought
-
-TIME/DISCIPLINE sentences ("daily", "consistent", "routine"):
-Show actual time objects: a simple analog clock on a wall, a calendar with dates marked, an alarm clock, a watch on someone's wrist
-
-GAMING/DISTRACTION sentences ("video games", "social media", "scrolling"):
-Show real devices: a gaming controller on a table, smartphone lying flat, computer screen glow, headphones on a desk
-
-STRENGTH/POWER sentences ("strong", "powerful", "discipline"):
-Show real powerful objects: clenched fist, person doing push-ups, weights on the ground, someone running up real stairs
-
-AVOID AT ALL COSTS:
-- Abstract arrangements or impossible combinations
-- Circular loops, intertwined objects, or surreal concepts
-- Complex artistic metaphors that can't be photographed
-- Multiple objects floating or arranged in impossible ways
-
-LIGHTING: Soft but defined shadows - ensure ALL areas of image have visible detail, no pure black zones.
-
-Return ONLY a clean, simple sentence describing ONE realistic scene that could actually be photographed. No formatting, no asterisks, no dashes, no bullet points, no markdown. Just a clear descriptive sentence of a real, simple scene.`,
+Return ONLY a clean, simple sentence describing ONE realistic scene that directly relates to the meaning of "${sentence}". Be specific and varied.`,
         },
       ],
     });
