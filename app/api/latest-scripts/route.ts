@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 interface LatestScript {
@@ -9,7 +9,7 @@ interface LatestScript {
   created_at: string;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log("Fetching latest 5 scripts from database...");
 
