@@ -36,9 +36,9 @@ ${originalDescription ? `ORIGINAL DESCRIPTION: ${originalDescription}` : ""}
 PLATFORM OPTIMIZATION REQUIREMENTS:
 
 **YOUTUBE SHORTS:**
-- Title: Compelling, keyword-rich (60 chars max) - REQUIRED for YouTube
+- Title: Compelling, keyword-rich (60 chars max) with #shorts at the end
 - Description: Brief, engaging (2-3 sentences max)
-- Hashtags: ONLY #shorts (this is proven to work best)
+- Hashtags: Not needed (will be handled in UI)
 
 **INSTAGRAM REELS:**
 - Description: 1-2 sentences with relevant emojis (NO TITLE NEEDED)

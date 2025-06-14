@@ -380,7 +380,9 @@ export default function PlatformOptimizer() {
                               className="cursor-pointer hover:bg-muted/50 transition-colors"
                               onClick={() =>
                                 copyToClipboard(
-                                  content.description,
+                                  platform === "youtube"
+                                    ? `${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`
+                                    : content.description,
                                   `${platform}-description`
                                 )
                               }
@@ -406,8 +408,10 @@ export default function PlatformOptimizer() {
                                 </div>
                               </CardHeader>
                               <CardContent className="pt-0">
-                                <p className="text-base">
-                                  {content.description}
+                                <p className="text-base whitespace-pre-line">
+                                  {platform === "youtube"
+                                    ? `${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`
+                                    : content.description}
                                 </p>
                               </CardContent>
                             </Card>
@@ -456,7 +460,7 @@ export default function PlatformOptimizer() {
                               className="cursor-pointer hover:bg-muted/50 transition-colors"
                               onClick={() =>
                                 copyToClipboard(
-                                  `${content.title}\n\n${content.description}\n\n${content.hashtags}`,
+                                  `${content.title} #shorts\n\n${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`,
                                   `${platform}-complete`
                                 )
                               }
@@ -493,7 +497,7 @@ export default function PlatformOptimizer() {
                               className="cursor-pointer hover:bg-muted/50 transition-colors"
                               onClick={() =>
                                 copyToClipboard(
-                                  `${content.description}\n\n${content.hashtags}`,
+                                  `${content.description}\n${content.hashtags}`,
                                   `${platform}-complete`
                                 )
                               }
