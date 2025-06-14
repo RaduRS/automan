@@ -42,19 +42,19 @@ PLATFORM OPTIMIZATION REQUIREMENTS:
 
 **INSTAGRAM REELS:**
 - Description: 1-2 sentences with relevant emojis (NO TITLE NEEDED)
-- Hashtags: 5-15 mix of broad format tags (#reels, #reelsinstagram) and niche tags (#disciplinedaily, #selfimprovement, #peakperformance)
+- Hashtags: 5-15 mix of format tags (#reels, #reelsinstagram) + content-specific tags based on script theme (motivation, discipline, success, mindset, etc.) + audience tags (#mensmotivation, #selfimprovement, etc.)
 
 **FACEBOOK REELS:**
 - Description: Relatable, shareable content with emojis (NO TITLE NEEDED)
-- Hashtags: 3-5 highly relevant tags (#facebookreels, #motivation, #discipline)
+- Hashtags: 3-5 highly relevant tags including #facebookreels + content-specific hashtags based on script topic
 
 **TIKTOK:**
 - Description: Catchy, trend-relevant with emojis (NO TITLE NEEDED)
-- Hashtags: Current successful mix (#disciplinedaily, #stayfocused, #selfimprovement, #lifehacks, #peakperformance)
+- Hashtags: 4-6 hashtags mixing trending topics with content-specific themes - analyze script for main concepts (discipline, motivation, success, productivity, mindset, etc.)
 
 **X (TWITTER):**
 - Description: Question or bold statement to encourage engagement (NO TITLE NEEDED)
-- Hashtags: 1-3 topical hashtags only (#discipline, #stayfocused)
+- Hashtags: 1-3 topical hashtags only - choose relevant hashtags based on script content (motivation, mindset, productivity, success-focused tags)
 
 CRITICAL REQUIREMENTS:
 - Keep authentic tone and energy from the original script
@@ -74,22 +74,22 @@ Respond with ONLY valid JSON in this exact format:
   "instagram": {
     "title": "",
     "description": "Description with emojis for Instagram...",
-    "hashtags": "#reels #reelsinstagram #selfimprovement #discipline #mensmotivation"
+    "hashtags": "mix of #reels #reelsinstagram + content-specific hashtags"
   },
   "facebook": {
     "title": "",
     "description": "Shareable description for Facebook...",
-    "hashtags": "#facebookreels #motivation #discipline"
+    "hashtags": "#facebookreels + relevant content hashtags"
   },
   "tiktok": {
     "title": "",
     "description": "Trend-aware description for TikTok...",
-    "hashtags": "#disciplinedaily #stayfocused #selfimprovement #lifehacks"
+    "hashtags": "content-specific trending hashtags"
   },
   "twitter": {
     "title": "",
     "description": "Engaging statement for Twitter...",
-    "hashtags": "#discipline #stayfocused"
+    "hashtags": "relevant hashtags based on script content"
   }
 }`;
 
