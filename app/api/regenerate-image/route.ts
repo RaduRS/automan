@@ -63,42 +63,19 @@ export async function POST(request: NextRequest) {
     const imageUrl = await generateImage(prompt.trim());
     console.log("Regenerated image URL:", imageUrl);
 
-    // Track generation in database
+    // Store the regenerated image in database (without cost tracking)
     const { data: dbData, error: dbError } = await supabase
       .from("image_generations")
       .insert({
         sentence: sentence?.trim() || "Regenerated image",
         prompt_generated: prompt.trim(),
         image_url: imageUrl,
-        cost: 0.003, // Only Replicate cost, no OpenAI cost
       })
       .select("id")
       .single();
 
     if (dbError) {
-      console.error("Failed to track generation in database:", dbError);
-    }
-
-    // Update cumulative stats (historical usage that never decreases)
-    try {
-      await fetch(
-        `${
-          process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-        }/api/update-cumulative-stats`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            cost: 0.003,
-            increment: 1,
-          }),
-        }
-      );
-    } catch (statsError) {
-      console.error("Failed to update cumulative stats:", statsError);
-      // Don't fail the request if stats update fails
+      console.error("Failed to store regenerated image in database:", dbError);
     }
 
     const result: ImageResult = {

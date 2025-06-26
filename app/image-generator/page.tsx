@@ -30,9 +30,8 @@ export default function ImageGeneratorPage() {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch stats, gallery and latest script on page load
+  // Fetch gallery and latest script on page load
   useEffect(() => {
-    fetchStats();
     fetchGallery(1);
     fetchLatestScript();
   }, []);
@@ -41,18 +40,6 @@ export default function ImageGeneratorPage() {
   useEffect(() => {
     fetchGallery(currentPage);
   }, [currentPage]);
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch("/api/image-stats");
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.stats);
-      }
-    } catch (err) {
-      console.error("Failed to fetch stats:", err);
-    }
-  };
 
   const fetchGallery = async (page: number) => {
     try {
@@ -90,11 +77,7 @@ export default function ImageGeneratorPage() {
   } | null>(null);
   const [deleteMenuOpen, setDeleteMenuOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<{
-    totalGenerations: number;
-    totalCost: number;
-    lastGeneration: string | null;
-  } | null>(null);
+
   const [galleryData, setGalleryData] = useState<{
     images: Array<{
       id: string;
@@ -139,8 +122,7 @@ export default function ImageGeneratorPage() {
           ...data.image,
           generationType: "ai-generated",
         });
-        // Refresh stats and gallery after successful generation
-        fetchStats();
+        // Refresh gallery after successful generation
         fetchGallery(currentPage);
       } else {
         const errorData = await response.json();
@@ -248,8 +230,6 @@ export default function ImageGeneratorPage() {
           ...data.image,
           generationType: generatedImage.generationType || "ai-generated",
         });
-        // Refresh stats and gallery after successful generation
-        fetchStats();
         fetchGallery(currentPage);
       } else {
         const errorData = await response.json();
@@ -315,8 +295,6 @@ export default function ImageGeneratorPage() {
           ...data.image,
           generationType: "direct-prompt",
         });
-        // Refresh stats and gallery after successful generation
-        fetchStats();
         fetchGallery(currentPage);
       } else {
         const errorData = await response.json();
@@ -407,34 +385,6 @@ export default function ImageGeneratorPage() {
         </p>
 
         {/* Stats Display */}
-        {stats && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-sm text-blue-600 font-medium">
-                  Total Generations
-                </p>
-                <p className="text-xl font-bold text-blue-900">
-                  {stats.totalGenerations}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-blue-600 font-medium">Total Cost</p>
-                <p className="text-xl font-bold text-blue-900">
-                  ${(0.06 + stats.totalCost).toFixed(3)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-blue-600 font-medium">
-                  Current Session
-                </p>
-                <p className="text-xl font-bold text-blue-900">
-                  ${stats.totalCost.toFixed(3)}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Main Content - 2 Column Layout */}

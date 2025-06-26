@@ -21,6 +21,8 @@ export interface Job {
     | "transcription_complete"
     | "generating_script"
     | "script_generated"
+    | "combining_video"
+    | "video_complete"
     | "generating_video"
     | "video_ready"
     | "scheduled_to_socialbee"
@@ -29,9 +31,12 @@ export interface Job {
   transcript_2?: string | null;
   transcript_3?: string | null;
   openai_script?: string | null;
+  script_scenes?: string | null;
   job_description?: string | null;
   job_hashtags?: string | null;
   final_video_url?: string | null;
+  video_duration?: number | null;
+  video_size_mb?: number | null;
   socialbee_post_id?: string | null;
   error_message?: string | null;
   retry_count: number;

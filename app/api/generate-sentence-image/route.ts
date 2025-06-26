@@ -21,13 +21,10 @@ async function generateImagePrompt(
   try {
     // Create the context-aware prompt for OpenAI
     const contextPrompt = scriptContext
-      ? `Based on this full motivational script context:
-"${scriptContext}"
+      ? `Full script context: "${scriptContext}"\n\nSpecific sentence: "${sentence}"`
+      : `Sentence: "${sentence}"`;
 
-Now create a visual image description specifically for this sentence from the script: "${sentence}"`
-      : `Create a visual image description inspired by this concept: "${sentence}"`;
-
-    // Use OpenAI o1-mini to generate a creative image prompt based on the sentence
+    // Use OpenAI o3-mini to generate a creative image prompt based on the sentence
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
@@ -39,42 +36,31 @@ Now create a visual image description specifically for this sentence from the sc
           role: "user",
           content: `${contextPrompt}
 
-ANALYZE THE SENTENCE MEANING FIRST:
-Look at the SPECIFIC words, emotions, and concepts in this sentence. Don't use generic templates.
+Create a powerful black and white photograph that visually represents the core emotion and meaning of this specific sentence.
 
-For "${sentence}":
-- What is the main ACTION or concept?
-- What EMOTION or feeling does it convey?
-- What specific OBJECTS, SETTINGS, or SCENES would visually represent this?
-- Is it about learning, breakthrough, change, action, struggle, success, time, relationships, etc.?
+ANALYZE THE SENTENCE:
+- What is the main emotion? (peace, strength, freedom, growth, struggle, breakthrough, etc.)
+- What visual metaphor would best represent this concept?
+- Should this be about people, nature, objects, architecture, or abstract forms?
 
-CRITICAL REQUIREMENTS:
-- Black and white photography with MODERATE contrast (avoid pure black areas)
-- Soft shadows with visible details throughout the frame
-- ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO WRITING anywhere in the image
-- Professional composition suitable for social media
-- FAMILY-FRIENDLY content only
+VISUAL APPROACH OPTIONS - Choose the MOST impactful for this sentence:
+1. NATURE: landscapes, weather, trees, water, sky, mountains, storms, sunrise/sunset
+2. HUMAN MOMENTS: genuine emotions, gestures, solitude, reflection, action (NO business suits)
+3. SYMBOLIC OBJECTS: chains, keys, doors, bridges, paths, mirrors, tools, books
+4. ARCHITECTURE: stairs, windows, buildings, ruins, structures that tell a story
+5. ABSTRACT FORMS: shadows, light patterns, textures, geometric shapes
 
-SENTENCE-SPECIFIC VISUAL MAPPING:
-- LEARNING/REALIZATION ("attention", "teaching", "shifted", "understanding"): Books, lightbulb moments, open journals, studying scenes, breakthrough moments
-- GROWTH/PROGRESS ("building", "growing", "developing"): Plants growing, construction, stairs, ladders, before/after contrasts
-- TIME/CONSISTENCY ("daily", "routine", "habit"): Clocks, calendars, sunrise/sunset, repeated patterns
-- STRENGTH/POWER ("strong", "discipline", "force"): Gym equipment, natural forces, solid structures
-- OBSTACLES/CHALLENGES ("setback", "struggle", "difficult"): Hurdles, rocky paths, storms clearing, bridges
-- BREAKTHROUGH/CHANGE ("shifted", "breakthrough", "transformed"): Doors opening, walls breaking, light through darkness
-- FOCUS/ATTENTION ("focus", "concentrate", "attention"): Magnifying glass, telescope, spotlight, clear vs blurry
-- ACTION/MOVEMENT ("take action", "start", "move"): Running, walking, hands in motion, beginning gestures
+REQUIREMENTS:
+- Black and white photography
+- NO text, words, or writing anywhere
+- Choose the most emotionally resonant visual approach
+- Be specific about composition, lighting, and mood
+- Create something a real photographer could capture
 
-CREATE A UNIQUE VISUAL REPRESENTATION:
-Based on the sentence's SPECIFIC meaning, describe ONE clear, realistic scene that a photographer could actually capture.
+For "${sentence}", choose ONE approach and describe a single, powerful scene in 1-2 sentences.
 
-AVOID:
-- Generic "person sitting on bench" unless the sentence is specifically about sitting or resting
-- Repetitive imagery you've used before
-- Abstract concepts that can't be photographed
-- Multiple unrelated objects in one scene
-
-Return ONLY a clean, simple sentence describing ONE realistic scene that directly relates to the meaning of "${sentence}". Be specific and varied.`,
+AVOID: Generic business imagery, men in suits, corporate settings, repetitive concepts.
+FOCUS: The unique emotional core of this specific sentence.`,
         },
       ],
     });
@@ -89,14 +75,14 @@ Return ONLY a clean, simple sentence describing ONE realistic scene that directl
   } catch (error) {
     console.error("Error generating prompt with OpenAI:", error);
     // Fallback: generate a basic prompt based on the sentence
-    return `A professional business setting with clean lighting and motivational atmosphere, representing determination and focus`;
+    return `A serene natural landscape with dramatic lighting, representing inner peace and personal growth`;
   }
 }
 
 async function generateImage(prompt: string): Promise<string> {
   try {
     const input = {
-      prompt: `${prompt}. Black and white photography with SOFT contrast, gentle shadows with visible details, balanced lighting that avoids harsh darkness, professional quality, motivational and dynamic imagery. CRITICAL: ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO WRITING, NO CAPTIONS, NO TYPOGRAPHY anywhere in the image. This is a pure visual image with NO TEXT ELEMENTS AT ALL. Ensure ALL areas have visible detail - no pure black or pure white zones. Action-oriented, powerful, and inspiring content`,
+      prompt: `${prompt}. Black and white photography, high quality, emotionally powerful, no text or writing, professional composition for social media`,
       go_fast: true,
       num_outputs: 1,
       aspect_ratio: "9:16", // Vertical format
@@ -138,8 +124,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Generate image prompt using OpenAI o1-mini
-    console.log("Generating image prompt with OpenAI o1-mini...");
+    // Step 1: Generate image prompt using OpenAI o3-mini
+    console.log("Generating image prompt with OpenAI o3-mini...");
     const imagePrompt = await generateImagePrompt(
       sentence.trim(),
       scriptContext?.trim()
@@ -151,42 +137,19 @@ export async function POST(request: NextRequest) {
     const imageUrl = await generateImage(imagePrompt);
     console.log("Generated image URL:", imageUrl);
 
-    // Track generation in database
+    // Store the generated image in database (without cost tracking)
     const { data: dbData, error: dbError } = await supabase
       .from("image_generations")
       .insert({
         sentence: sentence.trim(),
         prompt_generated: imagePrompt,
         image_url: imageUrl,
-        cost: 0.003,
       })
       .select("id")
       .single();
 
     if (dbError) {
-      console.error("Failed to track generation in database:", dbError);
-    }
-
-    // Update cumulative stats (historical usage that never decreases)
-    try {
-      await fetch(
-        `${
-          process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-        }/api/update-cumulative-stats`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            cost: 0.003,
-            increment: 1,
-          }),
-        }
-      );
-    } catch (statsError) {
-      console.error("Failed to update cumulative stats:", statsError);
-      // Don't fail the request if stats update fails
+      console.error("Failed to store image in database:", dbError);
     }
 
     const result: ImageResult = {

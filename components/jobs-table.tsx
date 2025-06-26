@@ -122,6 +122,8 @@ function getStatusBadge(status: Job["status"]) {
     generating_script: { variant: "secondary", label: "Generating Script" },
     script_generated: { variant: "default", label: "Script Ready" },
     generating_video: { variant: "secondary", label: "Creating Video" },
+    combining_video: { variant: "secondary", label: "Combining Video" },
+    video_complete: { variant: "default", label: "Video Complete" },
     video_ready: { variant: "secondary", label: "Video Ready" },
     scheduled_to_socialbee: { variant: "default", label: "Scheduled" },
     error: { variant: "destructive", label: "Failed" },
@@ -251,6 +253,29 @@ function ScriptViewer({ job }: ScriptViewerProps) {
               <div className="text-sm bg-muted p-4 rounded max-h-60 overflow-y-auto whitespace-pre-wrap">
                 {job.openai_script}
               </div>
+
+              {job.script_scenes && (
+                <div className="mt-4">
+                  <h4 className="font-semibold text-sm mb-2">
+                    Scenes ({JSON.parse(job.script_scenes).length}):
+                  </h4>
+                  <div className="space-y-2">
+                    {JSON.parse(job.script_scenes).map(
+                      (scene: string, index: number) => (
+                        <div
+                          key={index}
+                          className="text-sm bg-blue-50 border border-blue-200 p-2 rounded"
+                        >
+                          <span className="font-mono text-xs text-blue-600 mr-2">
+                            Scene {index + 1}:
+                          </span>
+                          <span className="text-blue-900">{scene}</span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -16,6 +16,7 @@ PERPLEXITY_API_KEY=your_perplexity_api_key
 REPLICATE_API_TOKEN=your_replicate_api_token
 HEYGEN_API_KEY=your_heygen_api_key
 SOCIALBEE_API_KEY=your_socialbee_api_key
+ELEVENLABS_API_KEY=your_elevenlabs_api_key
 
 # Cloudinary Configuration (Required for Phase 2)
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
@@ -44,7 +45,10 @@ CREATE TABLE jobs (
         'downloading', 
         'transcribing', 
         'transcription_complete',
-        'generating_script', 
+        'generating_script',
+        'script_generated', 
+        'combining_video',
+        'video_complete',
         'generating_video', 
         'video_ready', 
         'publishing', 
@@ -55,9 +59,12 @@ CREATE TABLE jobs (
     transcript_2 TEXT,
     transcript_3 TEXT,
     openai_script TEXT,
+    script_scenes TEXT,
     job_description TEXT,
     job_hashtags TEXT,
     final_video_url TEXT,
+    video_duration INTEGER,
+    video_size_mb DECIMAL(10,2),
     socialbee_post_id TEXT,
     error_message TEXT,
     retry_count INTEGER DEFAULT 0,
@@ -102,6 +109,8 @@ WHERE status NOT IN (
     'transcription_complete',
     'generating_script',
     'script_generated',
+    'combining_video',
+    'video_complete',
     'generating_video',
     'video_ready',
     'scheduled_to_socialbee',
@@ -113,10 +122,33 @@ WHERE status NOT IN (
 
 ## Database Migration for Existing Users
 
-If you already have the jobs table set up, run this SQL to add the new columns for description and hashtags:
+If you already have the jobs table set up, run this SQL to add the new columns for video workflow:
 
 ```sql
--- Add new columns for description and hashtags
+-- Add new columns for script scenes and video workflow
+ALTER TABLE jobs 
+ADD COLUMN IF NOT EXISTS script_scenes TEXT,
+ADD COLUMN IF NOT EXISTS video_duration INTEGER,
+ADD COLUMN IF NOT EXISTS video_size_mb DECIMAL(10,2);
+
+-- Update status enum to include new video workflow statuses
+ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check;
+ALTER TABLE jobs ADD CONSTRAINT jobs_status_check CHECK (status IN (
+    'submitted',
+    'downloading', 
+    'transcribing',
+    'transcription_complete',
+    'generating_script',
+    'script_generated',
+    'combining_video',
+    'video_complete',
+    'generating_video',
+    'video_ready',
+    'scheduled_to_socialbee',
+    'error'
+));
+
+-- Add new columns for description and hashtags (if not exists)
 ALTER TABLE jobs 
 ADD COLUMN IF NOT EXISTS job_description TEXT,
 ADD COLUMN IF NOT EXISTS job_hashtags TEXT;
@@ -127,7 +159,6 @@ CREATE TABLE IF NOT EXISTS image_generations (
     sentence TEXT NOT NULL,
     prompt_generated TEXT,
     image_url TEXT,
-    cost DECIMAL(10,6) DEFAULT 0.003,
     downloaded BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -135,15 +166,32 @@ CREATE TABLE IF NOT EXISTS image_generations (
 -- Create index for faster queries
 CREATE INDEX IF NOT EXISTS idx_image_generations_created_at ON image_generations(created_at DESC);
 
--- Create a view for total spend tracking
-CREATE OR REPLACE VIEW image_generation_stats AS
-SELECT 
-    COUNT(*) as total_generations,
-    SUM(cost) as total_cost,
-    MAX(created_at) as last_generation
-FROM image_generations;
-
 -- Add downloaded column to existing table
 ALTER TABLE image_generations 
 ADD COLUMN IF NOT EXISTS downloaded BOOLEAN DEFAULT false;
+```
+
+## Required Software
+
+### FFmpeg Installation
+
+The video combination feature requires FFmpeg to be installed on your system:
+
+**macOS (using Homebrew):**
+```bash
+brew install ffmpeg
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+**Windows:**
+Download from https://ffmpeg.org/download.html and add to PATH
+
+**Verify installation:**
+```bash
+ffmpeg -version
 ```

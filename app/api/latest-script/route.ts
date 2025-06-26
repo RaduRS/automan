@@ -6,7 +6,9 @@ export async function GET() {
     // Fetch the latest job with a generated script
     const { data, error } = await supabase
       .from("jobs")
-      .select("openai_script, job_title, created_at")
+      .select(
+        "id, openai_script, script_scenes, job_title, job_description, job_hashtags, created_at"
+      )
       .not("openai_script", "is", null)
       .not("openai_script", "eq", "")
       .order("created_at", { ascending: false })
@@ -29,8 +31,12 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      jobId: data.id,
       script: data.openai_script,
+      scenes: data.script_scenes ? JSON.parse(data.script_scenes) : [],
       title: data.job_title,
+      description: data.job_description,
+      hashtags: data.job_hashtags,
       createdAt: data.created_at,
     });
   } catch (error) {

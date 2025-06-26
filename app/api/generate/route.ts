@@ -9,6 +9,7 @@ const openai = new OpenAI({
 
 interface GeneratedContent {
   script: string;
+  scenes: string[];
   title: string;
   description: string;
   hashtags: string;
@@ -60,20 +61,24 @@ SCRIPT STRUCTURE REQUIREMENTS:
 4. RELATABLE CONCLUSION: End with something that feels genuine, not forced
 5. NATURAL CALL TO ACTION: If included, make it feel organic to the conversation
 
-HOOK VARIETY REQUIREMENTS (CRITICAL - CHOOSE DIVERSE OPENINGS):
-- AVOID predictable patterns like always starting with "Ever notice"
-- SELECT opening styles that best match the content and audience
-- PRIORITIZE fresh, unexpected hooks over formulaic ones
-- CHOOSE from diverse opening approaches to keep content engaging
+CRITICAL HOOK REQUIREMENTS:
+- NEVER start with "Ever notice", "You ever", "Did you ever" - these are BANNED
+- Use FRESH, powerful openings that grab attention immediately
+- Each script must have PERFECT grammar and flow naturally
 
-AUTHENTIC LANGUAGE PATTERNS (Select the most natural fit for this specific content):
-- Direct questions: "You know what's crazy?" "Know what I realized?" "What if I told you..."
-- Real observations: "Here's the thing..." "Look..." "I noticed something..."
-- Personal insights: "I figured out..." "Here's what changed for me..." "Let me tell you something..."
-- Conversational challenges: "Stop playing that game..." "Cut that out..." "Here's your problem..."
+APPROVED OPENING PATTERNS (choose one):
 - Bold statements: "Most guys get this wrong..." "Nobody talks about this..." "This changed everything..."
+- Direct challenges: "Stop playing that game..." "Cut that out..." "Here's your problem..."
+- Powerful observations: "Here's the thing..." "Look..." "I noticed something..."
+- Personal insights: "I figured out..." "Here's what changed for me..." "Let me tell you something..."
+- Questions (NOT "ever" questions): "You know what's crazy?" "Know what I realized?" "What if I told you..."
 - Relatable scenarios: "Picture this..." "You know that feeling when..." "We've all been there..."
-- Natural transitions: "But here's the deal..." "The thing is..." "Here's what's wild..."
+
+GRAMMAR & FLOW REQUIREMENTS:
+- Check EVERY sentence for proper grammar
+- Ensure natural speech patterns
+- Fix any awkward phrasing immediately
+- Each scene must be a complete, well-formed thought
 
 PRESERVE AUTHENTICITY:
 - Keep any natural speech patterns from the original transcripts
@@ -82,45 +87,47 @@ PRESERVE AUTHENTICITY:
 - Maintain the emotional tone and intensity of the original
 - Let personality shine through instead of corporate polish
 
-AVOID AT ALL COSTS:
-- Template language that sounds like every other motivational post
-- Buzzword-heavy sentences
-- Overly formal or "professional" tone
-- Generic self-help speak
-- Anything that doesn't sound like natural conversation
-- OVERUSED OPENING PATTERNS (especially defaulting to "Ever notice")
-- Predictable or formulaic hooks that sound like templates
-- Generic openings that could apply to any motivational content
+BANNED PHRASES & PATTERNS:
+- "Ever notice", "You ever", "Did you ever" - NEVER USE THESE
+- "The brutal truth is..."
+- "Unleash", "Dominate", "Conquer", "Destroy", "Elevate"
+- "Transform your mindset", "Ancient wisdom", "Unlock your potential"
+- Template language and buzzwords
+- Poor grammar like "You have so fucking potential" (should be "You have so fucking MUCH potential")
+- Generic openings that sound like every other motivational post
 
-DESCRIPTION & HASHTAG REQUIREMENTS:
-- Description: 1-2 sentences max, conversational tone with relevant emojis
-- Hashtags: Mix of 3-5 UNIQUE tags combining broad appeal (#Motivation) with specific niche. Avoid overused tags like #GrindSeason
-- Keep it authentic, not corporate
+CRITICAL: You MUST return the response in this EXACT JSON format:
 
 {
-  "script": "Transform the content while preserving the authentic conversational voice and natural energy. Keep it real, relatable, and true to the original speaking style. 150-200 words maximum...",
-  "title": "Authentic, attention-grabbing title that sounds like real conversation, not corporate speak...",
-  "description": "Natural, conversational description with emojis that complements the authentic script...",
-  "hashtags": "#Motivation #SpecificNiche #BroadAppeal #ActionOriented"
-}`;
+  "script": "The complete script as one piece...",
+  "scenes": [
+    "First scene sentence here",
+    "Second scene sentence here",
+    "Third scene sentence here"
+  ],
+  "title": "Video title here",
+  "description": "Description here",
+  "hashtags": "#Tag1 #Tag2 #Tag3"
+}
+
+SCENE BREAKDOWN INSTRUCTIONS:
+- Take your complete script and BREAK IT into 6-12 individual sentences
+- Each scene = 1 sentence that makes sense on its own
+- When played together, scenes = the complete script
+- Each sentence should be 8-25 words (good for voice timing)
+
+EXAMPLE:
+If script is: "You know what's crazy? Most people quit right before their breakthrough. Here's what I learned..."
+Then scenes should be: ["You know what's crazy?", "Most people quit right before their breakthrough.", "Here's what I learned..."]`;
 
   const completion = await openai.chat.completions.create({
     model: "o3-mini",
     messages: [
       {
         role: "user",
-        content: `You are an expert content creator specializing in creating VIRAL motivational content for ambitious men. Your specialty is transforming existing motivational content into JAW-DROPPING, SCROLL-STOPPING scripts that command attention and drive action.
+        content: `You create viral motivational scripts for men aged 20-40. Create a complete script AND break it into individual sentences (scenes) for video production.
 
-Your audience consists of ambitious men aged 20-40 who:
-- Struggle with consistency in their personal development
-- Want practical discipline strategies, not just motivational fluff
-- Are interested in ancient wisdom applied to modern challenges
-- Consume content on mobile platforms (TikTok, Instagram, YouTube)
-- Value transformation and results over entertainment
-
-Your tone must be authoritative yet approachable, confident and direct, inspiring but grounded. Use masculine, powerful language that emphasizes and convinces. Always start with a hook that makes viewers STOP scrolling immediately.
-
-Focus on discipline transformation, peak performance, success scenarios, and practical self-improvement strategies. Always respond with valid JSON only, no markdown formatting.
+IMPORTANT: Respond with ONLY valid JSON, no markdown. Follow the exact format shown in the prompt.
 
 ${prompt}`,
       },
@@ -173,6 +180,7 @@ async function updateJobWithGeneratedContent(
     .update({
       status: "script_generated",
       openai_script: content.script,
+      script_scenes: JSON.stringify(content.scenes),
       job_title: content.title,
       job_description: content.description,
       job_hashtags: content.hashtags,
@@ -259,6 +267,7 @@ export async function POST(request: NextRequest) {
       content: {
         title: generatedContent.title,
         script: generatedContent.script,
+        scenes: generatedContent.scenes,
         description: generatedContent.description,
         hashtags: generatedContent.hashtags,
       },

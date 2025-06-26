@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Settings, BarChart3, Home } from "lucide-react";
+import { ImageIcon, Settings, BarChart3, Home, Film } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -14,6 +14,12 @@ export function Navbar() {
       href: "/",
       icon: Home,
       description: "TikTok to multi-platform content",
+    },
+    {
+      name: "Scene Manager",
+      href: "/scene-manager",
+      icon: Film,
+      description: "Manage scenes and create videos",
     },
     {
       name: "Platform Optimizer",
