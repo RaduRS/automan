@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,9 @@ import {
   Trash2,
   RefreshCw,
   Video,
+  Pause,
 } from "lucide-react";
+import ReactPlayer from "react-player";
 import Link from "next/link";
 import { Player } from "@remotion/player";
 import { useCurrentFrame, Audio, Sequence } from "remotion";
@@ -152,6 +154,142 @@ export default function SceneManagerPage() {
   );
   const [sceneDurations, setSceneDurations] = useState<number[]>([]);
 
+  // Audio player state management
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRefs = useRef<{ [key: number]: ReactPlayer | null }>({});
+
+  // Function to handle audio playback - stops all others and plays the selected one
+  const handleAudioPlay = (sceneId: number) => {
+    // Stop all currently playing audio
+    Object.values(audioRefs.current).forEach((player) => {
+      if (player) {
+        // ReactPlayer doesn't have a direct stop method, so we pause and seek to 0
+        player.getInternalPlayer()?.pause?.();
+      }
+    });
+
+    // If clicking the same audio that's playing, pause it
+    if (currentlyPlaying === sceneId && isPlaying) {
+      setIsPlaying(false);
+      setCurrentlyPlaying(null);
+      return;
+    }
+
+    // Play the selected audio
+    const targetPlayer = audioRefs.current[sceneId];
+    if (targetPlayer) {
+      targetPlayer.getInternalPlayer()?.play?.();
+      setCurrentlyPlaying(sceneId);
+      setIsPlaying(true);
+    }
+  };
+
+  // Handle when audio ends
+  const handleAudioEnded = () => {
+    setIsPlaying(false);
+    setCurrentlyPlaying(null);
+  };
+
+  // Custom Audio Player Component
+  const CustomAudioPlayer = ({
+    sceneId,
+    audioUrl,
+  }: {
+    sceneId: number;
+    audioUrl: string;
+  }) => {
+    const isCurrentlyPlaying = currentlyPlaying === sceneId && isPlaying;
+    const [duration, setDuration] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0);
+
+    return (
+      <div className="flex items-center gap-2 flex-1">
+        <Button
+          onClick={() => handleAudioPlay(sceneId)}
+          variant="ghost"
+          size="sm"
+          className="h-10 w-10 p-0 hover:bg-gray-100"
+        >
+          {isCurrentlyPlaying ? (
+            <Pause className="h-5 w-5" />
+          ) : (
+            <Play className="h-5 w-5" />
+          )}
+        </Button>
+
+        <span className="text-sm text-gray-600 min-w-[30px]">
+          {duration > 0
+            ? `${Math.floor((duration - currentTime) / 60)}:${String(
+                Math.floor((duration - currentTime) % 60)
+              ).padStart(2, "0")}`
+            : "0:00"}
+        </span>
+
+        {/* Custom Audio Progress Bar */}
+        <div className="flex-1 flex items-center bg-transparent px-2 py-2">
+          <div className="w-full relative">
+            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-black transition-all duration-200 ease-out"
+                style={{
+                  width:
+                    duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
+                }}
+              />
+            </div>
+            <input
+              type="range"
+              min="0"
+              max={duration || 0}
+              value={currentTime}
+              onChange={(e) => {
+                const newTime = parseFloat(e.target.value);
+                const player = audioRefs.current[sceneId];
+                if (player) {
+                  player.seekTo(newTime, "seconds");
+                }
+              }}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          </div>
+        </div>
+
+        {/* Hidden ReactPlayer - no controls, no visual */}
+        <div className="hidden">
+          <ReactPlayer
+            ref={(player) => {
+              audioRefs.current[sceneId] = player;
+            }}
+            url={audioUrl}
+            width="0"
+            height="0"
+            controls={false}
+            playing={isCurrentlyPlaying}
+            onDuration={setDuration}
+            onProgress={({ playedSeconds }) => setCurrentTime(playedSeconds)}
+            onEnded={handleAudioEnded}
+            onPause={() => {
+              if (currentlyPlaying === sceneId) {
+                setIsPlaying(false);
+              }
+            }}
+            onPlay={() => {
+              // Stop all other players when this one starts
+              Object.entries(audioRefs.current).forEach(([id, player]) => {
+                if (parseInt(id) !== sceneId && player) {
+                  player.getInternalPlayer()?.pause?.();
+                }
+              });
+              setCurrentlyPlaying(sceneId);
+              setIsPlaying(true);
+            }}
+          />
+        </div>
+      </div>
+    );
+  };
+
   useEffect(() => {
     fetchLatestScript();
   }, []);
@@ -183,15 +321,16 @@ export default function SceneManagerPage() {
 
   // Handle video creation completion
   const handleVideoCreated = (videoUrl: string) => {
-    // Automatically trigger download
+    // Automatically trigger download with script title
     const a = document.createElement("a");
     a.href = videoUrl;
-    a.download = `master-video-${Date.now()}.mp4`;
+    const safeTitle =
+      scriptData?.title?.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, "-") ||
+      "master-video";
+    a.download = `${safeTitle}.mp4`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-
-    alert("Master video created and downloaded successfully!");
   };
 
   // Helper functions for localStorage persistence
@@ -682,7 +821,7 @@ export default function SceneManagerPage() {
       <div className="flex h-[calc(100vh-120px)]">
         {/* Left Side: Scrollable Scenes */}
         <div className="flex-1 overflow-y-auto p-6 border-r">
-          <div className="max-w-4xl m-auto">
+          <div className="max-w-6xl m-auto">
             {/* Master Controls */}
             <Card className="mb-6">
               <CardHeader>
@@ -768,140 +907,161 @@ export default function SceneManagerPage() {
               </CardContent>
             </Card>
 
-            {/* Individual Scenes */}
-            <div className="space-y-4">
+            {/* Individual Scenes - 2 Column Grid */}
+            <div className="grid grid-cols-2 gap-4">
               {scenes.map((scene, index) => (
                 <Card key={scene.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      Scene {scene.id}
+                  <CardContent className="p-4">
+                    {/* Scene header */}
+                    <div className="flex items-center gap-3 mb-8">
+                      <h3 className="font-medium text-base">
+                        Scene {scene.id}
+                      </h3>
                       <Badge
                         variant={
                           scene.voiceUrl && scene.imageUrl
                             ? "default"
+                            : scene.voiceUrl || scene.imageUrl
+                            ? "destructive"
                             : "secondary"
                         }
+                        className="text-sm px-2 py-1"
                       >
                         {scene.voiceUrl && scene.imageUrl
                           ? "Complete"
+                          : scene.voiceUrl || scene.imageUrl
+                          ? "Incomplete"
                           : "Pending"}
                       </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-6">
-                      {/* Left: Text and Voice stacked */}
-                      <div className="flex-1 space-y-4">
-                        {/* Scene Text */}
-                        <div>
-                          <h4 className="font-semibold mb-2">Text</h4>
-                          <p className="text-sm bg-muted p-3 rounded">
-                            {scene.text}
-                          </p>
-                        </div>
+                    </div>
 
-                        {/* Voice Section */}
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-semibold">Voice</h4>
+                    {/* Image and Text - 60/40 split */}
+                    <div className="flex gap-4 mb-6">
+                      {/* Left: Image - 40% */}
+                      <div className="w-2/5">
+                        {scene.imageUrl ? (
+                          <div
+                            className="aspect-[9/16] bg-black rounded-lg overflow-hidden cursor-pointer relative group"
+                            onClick={() => {
+                              setSelectedImageUrl(scene.imageUrl!);
+                              setSelectedImageScene(scene.id);
+                            }}
+                          >
+                            <img
+                              src={scene.imageUrl}
+                              alt={`Scene ${scene.id}`}
+                              className="w-full h-full object-cover"
+                            />
+
+                            {/* Green bullet - top left */}
+                            <div className="absolute top-2 left-2 w-3 h-3 bg-green-500 rounded-full z-20"></div>
+
+                            {/* Regenerate button - top right */}
                             <Button
-                              onClick={() => regenerateSceneVoice(index)}
-                              disabled={scene.isGeneratingVoice}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent image modal from opening
+                                regenerateSceneImage(index);
+                              }}
+                              disabled={scene.isGeneratingImage}
                               variant="outline"
                               size="sm"
+                              className="absolute top-2 right-2 h-8 w-8 p-0 bg-white/90 hover:bg-white z-20"
                             >
-                              {scene.isGeneratingVoice ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
+                              {scene.isGeneratingImage ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               ) : (
-                                <RefreshCw className="h-3 w-3" />
+                                <RefreshCw className="h-3.5 w-3.5" />
                               )}
                             </Button>
-                          </div>
 
-                          {scene.voiceUrl ? (
-                            <div className="space-y-2">
-                              <audio controls className="w-full">
-                                <source
-                                  src={scene.voiceUrl}
-                                  type="audio/mpeg"
-                                />
-                                Your browser does not support audio.
-                              </audio>
-                              <div className="text-xs text-green-600">
-                                ✅ Voice generated
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-4 text-muted-foreground text-sm">
-                              {scene.isGeneratingVoice
-                                ? "Generating voice..."
-                                : "No voice generated"}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                            {/* Hover overlay */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity z-10"></div>
 
-                      {/* Right: Image */}
-                      <div className="w-48">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold">Image</h4>
-                          <Button
-                            onClick={() => regenerateSceneImage(index)}
-                            disabled={scene.isGeneratingImage}
-                            variant="outline"
-                            size="sm"
-                          >
-                            {scene.isGeneratingImage ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <RefreshCw className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
-
-                        {scene.imageUrl ? (
-                          <div className="space-y-2">
-                            <div
-                              className="aspect-[9/16] bg-black rounded-lg overflow-hidden cursor-pointer"
-                              onClick={() => {
-                                setSelectedImageUrl(scene.imageUrl!);
-                                setSelectedImageScene(scene.id);
-                              }}
-                            >
-                              <img
-                                src={scene.imageUrl}
-                                alt={`Scene ${scene.id}`}
-                                className="w-full h-full object-cover"
-                              />
+                            {/* Expand icon */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <Maximize2 className="h-8 w-8 text-white drop-shadow-lg" />
                             </div>
-                            <div className="text-xs text-green-600 text-center">
-                              ✅ Image generated
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full"
-                              onClick={() => {
-                                setSelectedImageUrl(scene.imageUrl!);
-                                setSelectedImageScene(scene.id);
-                              }}
-                            >
-                              <Maximize2 className="h-3 w-3 mr-1" />
-                              View
-                            </Button>
                           </div>
                         ) : (
-                          <div className="aspect-[9/16] border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center text-muted-foreground text-sm">
+                          <div className="aspect-[9/16] border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center text-muted-foreground relative">
                             {scene.isGeneratingImage ? (
                               <div className="text-center">
                                 <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                                Generating...
+                                <span className="text-sm">Generating...</span>
                               </div>
                             ) : (
-                              "No image"
+                              <span className="text-sm">No image</span>
+                            )}
+
+                            {/* Regenerate button for no image state */}
+                            <Button
+                              onClick={() => regenerateSceneImage(index)}
+                              disabled={scene.isGeneratingImage}
+                              variant="outline"
+                              size="sm"
+                              className="absolute top-2 right-2 h-8 w-8 p-0 bg-white/90 hover:bg-white"
+                            >
+                              {scene.isGeneratingImage ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Image className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: Text - 60% */}
+                      <div className="w-3/5">
+                        <h4 className="text-sm font-medium mb-2">Scene Text</h4>
+                        <p className="text-sm bg-muted/30 py-3 rounded-lg leading-relaxed h-full">
+                          {scene.text}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Voice Section - Full width spanning both columns */}
+                    <div className="w-full">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center">
+                          {scene.voiceUrl && (
+                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+                          )}
+                        </div>
+
+                        {scene.voiceUrl ? (
+                          <CustomAudioPlayer
+                            sceneId={scene.id}
+                            audioUrl={scene.voiceUrl}
+                          />
+                        ) : (
+                          <div className="flex-1 flex items-center justify-center h-12 bg-transparent text-sm text-gray-600">
+                            {scene.isGeneratingVoice ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                                Generating...
+                              </>
+                            ) : (
+                              "No voice"
                             )}
                           </div>
                         )}
+
+                        <Button
+                          onClick={() => regenerateSceneVoice(index)}
+                          disabled={scene.isGeneratingVoice}
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 shrink-0"
+                        >
+                          {scene.isGeneratingVoice ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : scene.voiceUrl ? (
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          ) : (
+                            <Play className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -914,8 +1074,7 @@ export default function SceneManagerPage() {
         {/* Right Side: Fixed Master Preview */}
         <div className="w-96 p-6 bg-muted/30">
           <div className="sticky top-6">
-            {scenes.filter((scene) => scene.voiceUrl && scene.imageUrl).length >
-            1 ? (
+            {allVoicesGenerated && allImagesGenerated && scenes.length > 1 ? (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -987,20 +1146,49 @@ export default function SceneManagerPage() {
                   <p className="text-muted-foreground mb-2">
                     Master Video Preview
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    Generate voices and images for at least 2 scenes to see the
-                    preview
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Complete all scenes to create your video
                   </p>
-                  <div className="mt-4 text-sm">
-                    <p>
-                      Ready:{" "}
-                      {
-                        scenes.filter(
-                          (scene) => scene.voiceUrl && scene.imageUrl
-                        ).length
-                      }{" "}
-                      / {scenes.length} scenes
-                    </p>
+
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span>Voices:</span>
+                      <span
+                        className={
+                          scenes.every((s) => s.voiceUrl)
+                            ? "text-green-600"
+                            : "text-orange-500"
+                        }
+                      >
+                        {scenes.filter((s) => s.voiceUrl).length} /{" "}
+                        {scenes.length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Images:</span>
+                      <span
+                        className={
+                          scenes.every((s) => s.imageUrl)
+                            ? "text-green-600"
+                            : "text-orange-500"
+                        }
+                      >
+                        {scenes.filter((s) => s.imageUrl).length} /{" "}
+                        {scenes.length}
+                      </span>
+                    </div>
+
+                    {!allVoicesGenerated || !allImagesGenerated ? (
+                      <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded text-orange-700">
+                        <p className="text-xs font-medium mb-1">
+                          Missing content detected
+                        </p>
+                        <p className="text-xs">
+                          Use the ▶️ buttons next to individual scenes to
+                          generate missing voices or images manually
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>
@@ -1014,17 +1202,52 @@ export default function SceneManagerPage() {
         open={selectedImageUrl !== null}
         onOpenChange={() => setSelectedImageUrl(null)}
       >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Scene {selectedImageScene} Image</DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-2">
+            <div className="flex items-center gap-3">
+              <DialogTitle>Scene {selectedImageScene}</DialogTitle>
+              <Button
+                onClick={() => {
+                  const sceneIndex = scenes.findIndex(
+                    (s) => s.id === selectedImageScene
+                  );
+                  if (sceneIndex !== -1) {
+                    regenerateSceneImage(sceneIndex);
+                  }
+                }}
+                disabled={
+                  selectedImageScene
+                    ? scenes.find((s) => s.id === selectedImageScene)
+                        ?.isGeneratingImage
+                    : false
+                }
+                variant="outline"
+                size="sm"
+              >
+                {selectedImageScene &&
+                scenes.find((s) => s.id === selectedImageScene)
+                  ?.isGeneratingImage ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+              </Button>
+            </div>
           </DialogHeader>
-          {selectedImageUrl && (
-            <div className="aspect-[9/16] bg-black rounded-lg overflow-hidden">
+          {selectedImageScene && (
+            <div className="px-4 pb-4">
               <img
-                src={selectedImageUrl}
+                src={
+                  scenes.find((s) => s.id === selectedImageScene)?.imageUrl ||
+                  selectedImageUrl ||
+                  ""
+                }
                 alt={`Scene ${selectedImageScene}`}
-                className="w-full h-full object-cover"
+                className="w-full h-auto rounded max-h-[65vh] object-cover mb-3"
               />
+              <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded">
+                {scenes.find((s) => s.id === selectedImageScene)?.text}
+              </div>
             </div>
           )}
         </DialogContent>

@@ -317,7 +317,7 @@ export default function PlatformOptimizer() {
                     >
                       <div className="space-y-4">
                         {/* Platform Header */}
-                        <div className="flex items-center gap-3 mb-4">
+                        <div className="flex items-center gap-3 mb-8">
                           <div
                             className={`w-4 h-4 rounded-full ${config.color}`}
                           ></div>

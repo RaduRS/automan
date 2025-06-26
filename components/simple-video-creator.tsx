@@ -92,19 +92,10 @@ export function SimpleVideoCreator({
         ...audioDestination.stream.getAudioTracks(),
       ]);
 
-      // Try different codecs for better compatibility
-      let mimeType = "video/webm;codecs=vp9,opus";
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "video/webm;codecs=vp8,opus";
-      }
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "video/webm";
-      }
-
+      // Try MP4 first for better TikTok compatibility
       const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType,
-        videoBitsPerSecond: 2500000, // 2.5 Mbps for good quality
-        audioBitsPerSecond: 128000, // 128 kbps for audio
+        mimeType: 'video/mp4; codecs="avc1.42E01E"', // H.264 baseline
+        videoBitsPerSecond: 2500000,
       });
 
       const chunks: Blob[] = [];
@@ -395,7 +386,7 @@ export function SimpleVideoCreator({
         disabled={isCreating || !scenes || scenes.length === 0}
         className="w-full"
       >
-        {isCreating ? "Creating Video..." : "Create Master Video (Canvas)"}
+        {isCreating ? "Creating Video..." : "Create Video"}
       </Button>
 
       {isCreating && (

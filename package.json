@@ -34,6 +34,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.57.0",
+    "react-player": "^2.16.0",
     "remotion": "^4.0.320",
     "replicate": "^1.0.1",
     "tailwind-merge": "^3.3.0",

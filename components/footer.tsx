@@ -12,7 +12,7 @@ export function Footer() {
           </div>
 
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <span>© 2024 AutoMan</span>
+            <span>© 2025 AutoMan</span>
             <span>•</span>
             <span>Built with Next.js</span>
           </div>
