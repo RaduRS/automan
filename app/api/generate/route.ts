@@ -60,12 +60,20 @@ SCRIPT STRUCTURE REQUIREMENTS:
 4. RELATABLE CONCLUSION: End with something that feels genuine, not forced
 5. NATURAL CALL TO ACTION: If included, make it feel organic to the conversation
 
-AUTHENTIC LANGUAGE PATTERNS (Choose what fits naturally):
-- Direct questions: "You know what's crazy?" "Know what I realized?"
-- Real observations: "Here's the thing..." "Look..."
-- Personal insights: "I figured out..." "Here's what changed for me..."
-- Conversational challenges: "Stop playing that game..." "Cut that out..."
-- Natural transitions: "But here's the deal..." "The thing is..."
+HOOK VARIETY REQUIREMENTS (CRITICAL - CHOOSE DIVERSE OPENINGS):
+- AVOID predictable patterns like always starting with "Ever notice"
+- SELECT opening styles that best match the content and audience
+- PRIORITIZE fresh, unexpected hooks over formulaic ones
+- CHOOSE from diverse opening approaches to keep content engaging
+
+AUTHENTIC LANGUAGE PATTERNS (Select the most natural fit for this specific content):
+- Direct questions: "You know what's crazy?" "Know what I realized?" "What if I told you..."
+- Real observations: "Here's the thing..." "Look..." "I noticed something..."
+- Personal insights: "I figured out..." "Here's what changed for me..." "Let me tell you something..."
+- Conversational challenges: "Stop playing that game..." "Cut that out..." "Here's your problem..."
+- Bold statements: "Most guys get this wrong..." "Nobody talks about this..." "This changed everything..."
+- Relatable scenarios: "Picture this..." "You know that feeling when..." "We've all been there..."
+- Natural transitions: "But here's the deal..." "The thing is..." "Here's what's wild..."
 
 PRESERVE AUTHENTICITY:
 - Keep any natural speech patterns from the original transcripts
@@ -80,6 +88,9 @@ AVOID AT ALL COSTS:
 - Overly formal or "professional" tone
 - Generic self-help speak
 - Anything that doesn't sound like natural conversation
+- OVERUSED OPENING PATTERNS (especially defaulting to "Ever notice")
+- Predictable or formulaic hooks that sound like templates
+- Generic openings that could apply to any motivational content
 
 DESCRIPTION & HASHTAG REQUIREMENTS:
 - Description: 1-2 sentences max, conversational tone with relevant emojis
