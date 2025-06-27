@@ -8,6 +8,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Loader2,
   ArrowLeft,
   Download,
@@ -18,6 +25,8 @@ import {
   CheckCircle,
   Trash2,
   Wand2,
+  Plus,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -29,6 +38,18 @@ export default function ImageGeneratorPage() {
   const [originalPrompt, setOriginalPrompt] = useState("");
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Scene replacement functionality
+  const [scenes, setScenes] = useState<
+    Array<{
+      id: number;
+      text: string;
+      imageUrl?: string;
+      voiceUrl?: string;
+    }>
+  >([]);
+  const [selectedSceneId, setSelectedSceneId] = useState<string>("");
+  const [isReplacingImage, setIsReplacingImage] = useState(false);
 
   // Fetch gallery and latest script on page load
   useEffect(() => {
@@ -61,11 +82,67 @@ export default function ImageGeneratorPage() {
         if (data.script) {
           setScriptContext(data.script);
           setScriptLoadedFromDB(true);
+
+          // Parse scenes from the script and get their stored data
+          if (data.scenes && Array.isArray(data.scenes)) {
+            const scenesWithText = data.scenes.map(
+              (sceneText: string, index: number) => ({
+                id: index + 1,
+                text: sceneText,
+                imageUrl: undefined,
+                voiceUrl: undefined,
+              })
+            );
+
+            // Load scene data from localStorage if available
+            const scriptHash = hashScript(data.script);
+            const storedScenes = loadScenesFromStorage(scriptHash);
+            if (storedScenes) {
+              storedScenes.forEach((stored, index) => {
+                if (scenesWithText[index]) {
+                  scenesWithText[index].imageUrl = stored.imageUrl;
+                  scenesWithText[index].voiceUrl = stored.voiceUrl;
+                }
+              });
+            }
+
+            setScenes(scenesWithText);
+          }
         }
       }
     } catch (err) {
       console.error("Failed to fetch latest script:", err);
     }
+  };
+
+  // Helper functions for localStorage (same as in scene-manager)
+  const hashScript = (script: string): string => {
+    let hash = 0;
+    for (let i = 0; i < script.length; i++) {
+      const char = script.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString();
+  };
+
+  const loadScenesFromStorage = (
+    scriptHash: string
+  ):
+    | Partial<{
+        imageUrl?: string;
+        voiceUrl?: string;
+      }>[]
+    | null => {
+    try {
+      const stored = localStorage.getItem(`automan_scenes_${scriptHash}`);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.error("Failed to load scenes from localStorage:", error);
+    }
+    return null;
   };
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -368,6 +445,39 @@ export default function ImageGeneratorPage() {
     }
   };
 
+  const handleReplaceSceneImage = async () => {
+    if (!generatedImage || !selectedSceneId || !scriptContext) return;
+
+    setIsReplacingImage(true);
+    try {
+      const sceneIndex = parseInt(selectedSceneId) - 1;
+      const updatedScenes = [...scenes];
+      updatedScenes[sceneIndex].imageUrl = generatedImage.url;
+      setScenes(updatedScenes);
+
+      // Save to localStorage
+      const scriptHash = hashScript(scriptContext);
+      const sceneData = updatedScenes.map((scene) => ({
+        id: scene.id,
+        text: scene.text,
+        voiceUrl: scene.voiceUrl,
+        imageUrl: scene.imageUrl,
+      }));
+      localStorage.setItem(
+        `automan_scenes_${scriptHash}`,
+        JSON.stringify(sceneData)
+      );
+
+      // Show success message
+      setError(`✅ Successfully replaced Scene ${selectedSceneId} image!`);
+      setTimeout(() => setError(null), 3000);
+    } catch {
+      setError("Failed to replace scene image");
+    } finally {
+      setIsReplacingImage(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       {/* Header */}
@@ -659,7 +769,7 @@ export default function ImageGeneratorPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 {/* Image */}
                 <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden max-w-sm mx-auto">
                   <img
@@ -668,15 +778,116 @@ export default function ImageGeneratorPage() {
                     className="w-full h-full object-cover"
                   />
                 </div>
+
+                {/* Scene Replacement Section */}
+                {scenes.length > 0 && (
+                  <div className="border-t pt-4">
+                    <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <RefreshCw className="h-4 w-4" />
+                      Replace Scene Image
+                    </h3>
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <Label htmlFor="scene-select" className="text-xs">
+                          Select Scene
+                        </Label>
+                        <Select
+                          value={selectedSceneId}
+                          onValueChange={setSelectedSceneId}
+                        >
+                          <SelectTrigger id="scene-select" className="h-9">
+                            <SelectValue placeholder="Choose scene..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {scenes.map((scene) => (
+                              <SelectItem
+                                key={scene.id}
+                                value={scene.id.toString()}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">
+                                    Scene {scene.id}
+                                  </span>
+                                  {scene.imageUrl && (
+                                    <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        onClick={handleReplaceSceneImage}
+                        disabled={!selectedSceneId || isReplacingImage}
+                        size="sm"
+                        className="h-9"
+                      >
+                        {isReplacingImage ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <Plus className="h-3 w-3 mr-1" />
+                        )}
+                        {isReplacingImage ? "Replacing..." : "Replace"}
+                      </Button>
+                    </div>
+                    {selectedSceneId && (
+                      <div className="mt-2 text-xs text-muted-foreground bg-blue-50 border border-blue-200 p-2 rounded">
+                        <strong>Scene {selectedSceneId}:</strong>{" "}
+                        {scenes
+                          .find((s) => s.id.toString() === selectedSceneId)
+                          ?.text.substring(0, 100)}
+                        ...
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
             <Card className="h-full flex items-center justify-center">
               <CardContent className="text-center py-12">
                 <ImageIcon className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground mb-4">
                   Your generated image will appear here
                 </p>
+
+                {/* Scene dropdown for empty state */}
+                {scenes.length > 0 && (
+                  <div className="mt-6 max-w-xs mx-auto">
+                    <Label
+                      htmlFor="scene-select-empty"
+                      className="text-sm text-muted-foreground"
+                    >
+                      Select scene to replace when image is generated
+                    </Label>
+                    <Select
+                      value={selectedSceneId}
+                      onValueChange={setSelectedSceneId}
+                    >
+                      <SelectTrigger id="scene-select-empty" className="mt-2">
+                        <SelectValue placeholder="Choose scene..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {scenes.map((scene) => (
+                          <SelectItem
+                            key={scene.id}
+                            value={scene.id.toString()}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                Scene {scene.id}
+                              </span>
+                              {scene.imageUrl && (
+                                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

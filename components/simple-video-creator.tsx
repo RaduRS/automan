@@ -289,8 +289,8 @@ export function SimpleVideoCreator({
             // Alternating pan directions: odd scenes (0,2,4...) bottom→top, even scenes (1,3,5...) top→bottom
             const isBottomToTop = sceneIndex % 2 === 0;
             const yOffset = isBottomToTop
-              ? 200 - sceneProgress * 400 // Bottom to top: start at +200, end at -200
-              : -200 + sceneProgress * 400; // Top to bottom: start at -200, end at +200
+              ? 100 - sceneProgress * 200 // Bottom to top: start at +200, end at -200
+              : -100 + sceneProgress * 200; // Top to bottom: start at -200, end at +200
 
             // Calculate image dimensions to fit canvas while maintaining aspect ratio
             const imgAspect = scene.image.width / scene.image.height;

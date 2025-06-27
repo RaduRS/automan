@@ -82,7 +82,12 @@ const MasterVideoComposition: React.FC<{
   const sceneDuration = sceneDurations[currentSceneIndex];
   const frameInScene = frame - sceneStartFrame;
   const progress = Math.min(frameInScene / sceneDuration, 1);
-  const yPosition = -300 + progress * 600;
+
+  // Alternating pan directions: odd scenes (0,2,4...) bottom→top, even scenes (1,3,5...) top→bottom
+  const isBottomToTop = currentSceneIndex % 2 === 0;
+  const yOffset = isBottomToTop
+    ? 100 - progress * 200 // Bottom to top: start at +100, end at -100
+    : -100 + progress * 200; // Top to bottom: start at -100, end at +100
 
   return (
     <div
@@ -102,7 +107,7 @@ const MasterVideoComposition: React.FC<{
           position: "absolute",
           left: "50%",
           top: "50%",
-          transform: `translate(-50%, calc(-50% + ${yPosition}px))`,
+          transform: `translate(-50%, calc(-50% + ${yOffset}px))`,
           objectFit: "cover",
           objectPosition: "center",
         }}
@@ -908,7 +913,7 @@ export default function SceneManagerPage() {
             </Card>
 
             {/* Individual Scenes - 2 Column Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               {scenes.map((scene, index) => (
                 <Card key={scene.id}>
                   <CardContent className="p-4">
@@ -1077,7 +1082,7 @@ export default function SceneManagerPage() {
             {allVoicesGenerated && allImagesGenerated && scenes.length > 1 ? (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 pt-4">
                     <Video className="h-5 w-5" />
                     {scriptData.title}
                   </CardTitle>
