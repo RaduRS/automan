@@ -250,7 +250,7 @@ export function TikTokForm() {
       {/* Input Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Submit TikTok URLs</CardTitle>
+          <CardTitle className="py-4">Submit TikTok URLs</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

@@ -208,7 +208,9 @@ export default function PlatformOptimizer() {
                   {latestScripts.map((script) => (
                     <SelectItem key={script.id} value={script.id}>
                       <div className="flex flex-col">
-                        <span className="font-medium">{script.title}</span>
+                        <span className="font-medium text-left">
+                          {script.title}
+                        </span>
                         <span className="text-xs text-muted-foreground">
                           {new Date(script.created_at).toLocaleDateString()} •{" "}
                           {script.script.substring(0, 60)}...

@@ -7,7 +7,7 @@ export default function Home() {
         {/* Page Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold tracking-tight mb-4">
-            Welcome to Automan
+            Welcome to AutoMan
           </h1>
         </div>
 

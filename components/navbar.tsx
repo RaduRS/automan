@@ -48,7 +48,7 @@ export function Navbar() {
           {/* Logo/Brand */}
           <div className="flex items-center space-x-4">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="font-bold text-xl">Automan</div>
+              <div className="font-bold text-xl">AutoMan</div>
             </Link>
           </div>
 

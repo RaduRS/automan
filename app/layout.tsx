@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Automan - Multi-Platform Content Generator",
+  title: "AutoMan - Multi-Platform Content Generator",
   description:
     "Transform TikTok videos into optimized content for YouTube, Instagram, Facebook, and Twitter with AI-powered platform-specific optimization.",
 };
