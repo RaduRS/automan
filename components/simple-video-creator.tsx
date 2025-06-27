@@ -221,19 +221,23 @@ export function SimpleVideoCreator({
           return;
         }
 
-        const totalDuration = sceneData.reduce(
-          (sum, scene) => sum + scene.duration,
+        // Calculate scene durations in frames - MUST match scene-manager calculation exactly
+        const sceneDurationsInFrames = sceneData.map((scene) => {
+          // Use the same calculation as scene-manager: Math.ceil(duration * 30)
+          return Math.ceil(scene.duration * 30); // Convert to frames (30fps) - matches Remotion
+        });
+
+        // Use frame-based total duration to match Remotion exactly
+        const totalFrames = sceneDurationsInFrames.reduce(
+          (sum, frames) => sum + frames,
           0
         );
+        const totalDuration = totalFrames / 30; // Convert frames back to seconds
+
         let currentFrame = 0;
         let sceneIndex = 0;
         let sceneStartFrame = 0;
         let currentAudioSource: AudioBufferSourceNode | null = null;
-
-        // Calculate scene durations in frames for precise timing
-        const sceneDurationsInFrames = sceneData.map((scene) =>
-          Math.ceil(scene.duration * 30)
-        );
 
         // Play audio for the current scene
         const playSceneAudio = (scene: (typeof sceneData)[0]) => {

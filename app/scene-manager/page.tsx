@@ -1082,7 +1082,7 @@ export default function SceneManagerPage() {
             {allVoicesGenerated && allImagesGenerated && scenes.length > 1 ? (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 pt-4">
+                  <CardTitle className="flex items-center gap-2">
                     <Video className="h-5 w-5" />
                     {scriptData.title}
                   </CardTitle>
