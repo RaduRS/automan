@@ -225,10 +225,15 @@ export function SimpleVideoCreator({
           (sum, scene) => sum + scene.duration,
           0
         );
-        let currentTime = 0;
+        let currentFrame = 0;
         let sceneIndex = 0;
-        let sceneStartTime = 0;
+        let sceneStartFrame = 0;
         let currentAudioSource: AudioBufferSourceNode | null = null;
+
+        // Calculate scene durations in frames for precise timing
+        const sceneDurationsInFrames = sceneData.map((scene) =>
+          Math.ceil(scene.duration * 30)
+        );
 
         // Play audio for the current scene
         const playSceneAudio = (scene: (typeof sceneData)[0]) => {
@@ -245,8 +250,8 @@ export function SimpleVideoCreator({
         const animate = () => {
           try {
             // Check MediaRecorder state periodically
-            if (Math.floor(currentTime * 30) % 90 === 0) {
-              // Every 3 seconds
+            if (currentFrame % 90 === 0) {
+              // Every 3 seconds (90 frames at 30fps)
               if (mediaRecorder.state !== "recording") {
                 throw new Error("MediaRecorder stopped recording unexpectedly");
               }
@@ -269,13 +274,15 @@ export function SimpleVideoCreator({
               throw new Error(`Scene ${sceneIndex} is undefined`);
             }
 
+            const sceneFrameDuration = sceneDurationsInFrames[sceneIndex];
+            const frameInScene = currentFrame - sceneStartFrame;
             const sceneProgress = Math.min(
-              (currentTime - sceneStartTime) / scene.duration,
+              frameInScene / sceneFrameDuration,
               1
             );
 
             // Start audio for new scene
-            if (currentTime === sceneStartTime && scene.audioBuffer) {
+            if (frameInScene === 0 && scene.audioBuffer) {
               currentAudioSource = playSceneAudio(scene);
             }
 
@@ -314,6 +321,7 @@ export function SimpleVideoCreator({
             ctx.drawImage(scene.image, x, y, drawWidth, drawHeight);
 
             // Update progress with more granular tracking
+            const currentTime = currentFrame / 30; // Convert frame to time for progress
             const recordingProgress = 50 + (currentTime / totalDuration) * 40; // 50-90%
             setProgress(Math.min(recordingProgress, 90));
 
@@ -325,17 +333,17 @@ export function SimpleVideoCreator({
               } (${scenePercentage}%)...`
             );
 
-            currentTime += 1 / 30; // 30 FPS
+            currentFrame++; // Increment frame counter
 
             // Check if scene is complete
-            if (currentTime >= sceneStartTime + scene.duration) {
+            if (frameInScene >= sceneFrameDuration) {
               // Stop current audio
               if (currentAudioSource) {
                 currentAudioSource.stop();
                 currentAudioSource = null;
               }
               sceneIndex++;
-              sceneStartTime = currentTime;
+              sceneStartFrame = currentFrame;
             }
 
             if (sceneIndex < sceneData.length) {

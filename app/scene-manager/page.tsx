@@ -916,9 +916,9 @@ export default function SceneManagerPage() {
             <div className="grid grid-cols-3 gap-4">
               {scenes.map((scene, index) => (
                 <Card key={scene.id}>
-                  <CardContent className="p-4">
+                  <CardContent>
                     {/* Scene header */}
-                    <div className="flex items-center gap-3 mb-8">
+                    <div className="flex items-center gap-3 mb-4">
                       <h3 className="font-medium text-base">
                         Scene {scene.id}
                       </h3>
@@ -941,7 +941,7 @@ export default function SceneManagerPage() {
                     </div>
 
                     {/* Image and Text - 60/40 split */}
-                    <div className="flex gap-4 mb-6">
+                    <div className="flex gap-4 mb-4">
                       {/* Left: Image - 40% */}
                       <div className="w-2/5">
                         {scene.imageUrl ? (
