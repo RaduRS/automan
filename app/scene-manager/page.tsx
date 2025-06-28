@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import {
   Dialog,
   DialogContent,
@@ -284,7 +284,7 @@ export default function SceneManagerPage() {
   const [scenes, setScenes] = useState<SceneData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isGeneratingAllVoices, setIsGeneratingAllVoices] = useState(false);
+
   const [isGeneratingAllImages, setIsGeneratingAllImages] = useState(false);
 
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
@@ -445,16 +445,6 @@ export default function SceneManagerPage() {
 
   useEffect(() => {
     fetchLatestScript();
-
-    // Load continuous audio from localStorage
-    try {
-      const storedContinuousAudio = localStorage.getItem("continuousAudio");
-      if (storedContinuousAudio) {
-        setContinuousAudio(JSON.parse(storedContinuousAudio));
-      }
-    } catch {
-      console.log("No continuous audio found in localStorage");
-    }
   }, []);
 
   // Calculate scene durations when scenes with audio are updated
@@ -623,6 +613,38 @@ export default function SceneManagerPage() {
 
       setScenes(scenesWithIds);
 
+      // Clean up old localStorage data and load continuous audio data
+      try {
+        // Remove old continuous audio timing data (was storing base64)
+        localStorage.removeItem("continuousAudioTimings");
+
+        const storedAudioData = localStorage.getItem("continuousAudioData");
+        if (storedAudioData) {
+          const audioData = JSON.parse(storedAudioData);
+          // Verify the audio URL is a Cloudinary URL and has required data
+          if (
+            audioData.audioUrl &&
+            audioData.audioUrl.includes("cloudinary.com") &&
+            audioData.sceneTimings &&
+            audioData.totalDuration
+          ) {
+            setContinuousAudio(audioData);
+            console.log("✅ Restored continuous audio from Cloudinary");
+          } else {
+            // Clean up invalid data
+            localStorage.removeItem("continuousAudioData");
+            console.log("🧹 Cleaned up invalid continuous audio data");
+          }
+        }
+      } catch (error) {
+        console.error(
+          "Failed to load continuous audio from localStorage:",
+          error
+        );
+        // Clean up on error
+        localStorage.removeItem("continuousAudioData");
+      }
+
       // Show restoration message if we loaded existing content
       const restoredVoices = scenesWithIds.filter(
         (s: SceneData) => s.voiceUrl
@@ -639,79 +661,6 @@ export default function SceneManagerPage() {
       setError(err instanceof Error ? err.message : "Failed to load script");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const generateAllVoices = async () => {
-    setIsGeneratingAllVoices(true);
-
-    try {
-      // Mark all scenes as generating voice
-      setScenes((prev) =>
-        prev.map((scene) => ({ ...scene, isGeneratingVoice: true }))
-      );
-
-      // Generate voices using ElevenLabs API
-      for (let i = 0; i < scenes.length; i++) {
-        try {
-          const response = await fetch("/api/generate-voice", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              text: scenes[i].text,
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-
-            // Update the specific scene with the generated voice
-            setScenes((prev) => {
-              const updatedScenes = prev.map((scene, index) =>
-                index === i
-                  ? {
-                      ...scene,
-                      isGeneratingVoice: false,
-                      voiceUrl: data.audioUrl,
-                    }
-                  : scene
-              );
-
-              // Save to localStorage after each successful generation
-              if (scriptData) {
-                const scriptHash = hashScript(scriptData.script);
-                saveScenesToStorage(scriptHash, updatedScenes);
-              }
-
-              return updatedScenes;
-            });
-          } else {
-            throw new Error(`Failed to generate voice for scene ${i + 1}`);
-          }
-        } catch (sceneError) {
-          console.error(
-            `Error generating voice for scene ${i + 1}:`,
-            sceneError
-          );
-
-          // Mark this scene as failed
-          setScenes((prev) =>
-            prev.map((scene, index) =>
-              index === i ? { ...scene, isGeneratingVoice: false } : scene
-            )
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error generating voices:", error);
-      setError("Failed to generate voices");
-      setScenes((prev) =>
-        prev.map((scene) => ({ ...scene, isGeneratingVoice: false }))
-      );
-    } finally {
-      setIsGeneratingAllVoices(false);
     }
   };
 
@@ -818,11 +767,13 @@ export default function SceneManagerPage() {
         };
         setContinuousAudio(continuousAudioData);
 
-        // Save to localStorage for use in video creation
-        localStorage.setItem(
-          "continuousAudio",
-          JSON.stringify(continuousAudioData)
-        );
+        // Save all data to localStorage including Cloudinary URL (now it's just a URL string, not base64)
+        const audioData = {
+          audioUrl: data.audioUrl, // Cloudinary URL - small string
+          sceneTimings: data.sceneTimings,
+          totalDuration: data.totalDuration,
+        };
+        localStorage.setItem("continuousAudioData", JSON.stringify(audioData));
         console.log("✅ Continuous audio with timings generated successfully");
       } else {
         console.error("Failed to generate continuous audio");
@@ -833,56 +784,6 @@ export default function SceneManagerPage() {
       setError("Failed to generate continuous audio");
     } finally {
       setIsGeneratingContinuousAudio(false);
-    }
-  };
-
-  const regenerateSceneVoice = async (sceneIndex: number) => {
-    setScenes((prev) =>
-      prev.map((scene, index) =>
-        index === sceneIndex ? { ...scene, isGeneratingVoice: true } : scene
-      )
-    );
-
-    try {
-      const response = await fetch("/api/generate-voice", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: scenes[sceneIndex].text,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        setScenes((prev) => {
-          const updatedScenes = prev.map((scene, index) =>
-            index === sceneIndex
-              ? { ...scene, isGeneratingVoice: false, voiceUrl: data.audioUrl }
-              : scene
-          );
-
-          // Save to localStorage after regeneration
-          if (scriptData) {
-            const scriptHash = hashScript(scriptData.script);
-            saveScenesToStorage(scriptHash, updatedScenes);
-          }
-
-          return updatedScenes;
-        });
-      } else {
-        throw new Error("Failed to regenerate voice");
-      }
-    } catch (error) {
-      console.error("Error regenerating voice:", error);
-      setError("Failed to regenerate voice");
-      setScenes((prev) =>
-        prev.map((scene, index) =>
-          index === sceneIndex ? { ...scene, isGeneratingVoice: false } : scene
-        )
-      );
     }
   };
 
@@ -937,25 +838,6 @@ export default function SceneManagerPage() {
     }
   };
 
-  // Reset functions
-  const resetAllVoices = () => {
-    setScenes((prev) => {
-      const updatedScenes = prev.map((scene) => ({
-        ...scene,
-        voiceUrl: undefined,
-      }));
-
-      // Update localStorage
-      if (scriptData) {
-        const scriptHash = hashScript(scriptData.script);
-        saveScenesToStorage(scriptHash, updatedScenes);
-      }
-
-      return updatedScenes;
-    });
-    console.log("🗑️ Cleared all voices");
-  };
-
   const resetAllImages = () => {
     setScenes((prev) => {
       const updatedScenes = prev.map((scene) => ({
@@ -993,7 +875,7 @@ export default function SceneManagerPage() {
 
     // Clear continuous audio
     setContinuousAudio(null);
-    localStorage.removeItem("continuousAudio");
+    localStorage.removeItem("continuousAudioData");
 
     console.log("🗑️ Cleared all voices, images, and continuous audio");
   };
@@ -1052,26 +934,14 @@ export default function SceneManagerPage() {
         <div className="flex-1 overflow-y-auto p-6 border-r">
           <div className="max-w-6xl m-auto">
             {/* Master Controls */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Master Controls - {scenes.length} scenes</CardTitle>
+            <Card className="mb-4">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">
+                  Master Controls - {scenes.length} scenes
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex gap-2 mb-4">
-                  <Button
-                    onClick={generateAllVoices}
-                    disabled={isGeneratingAllVoices || allVoicesGenerated}
-                    className="flex-1"
-                  >
-                    {isGeneratingAllVoices && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    <Play className="mr-2 h-4 w-4" />
-                    {allVoicesGenerated
-                      ? "All Voices Generated"
-                      : "Generate All Voices"}
-                  </Button>
-
+              <CardContent className="pt-0">
+                <div className="flex gap-2 mb-3">
                   <Button
                     onClick={generateAllImages}
                     disabled={isGeneratingAllImages || allImagesGenerated}
@@ -1086,104 +956,27 @@ export default function SceneManagerPage() {
                       ? "All Images Generated"
                       : "Generate All Images"}
                   </Button>
-                </div>
-
-                {/* Continuous Audio Generation */}
-                <div className="mb-4">
                   <Button
                     onClick={generateContinuousAudio}
-                    disabled={isGeneratingContinuousAudio}
-                    variant={continuousAudio ? "default" : "secondary"}
-                    className="w-full"
+                    disabled={isGeneratingContinuousAudio || !!continuousAudio}
+                    variant="outline"
+                    className="flex-1"
                   >
                     {isGeneratingContinuousAudio && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     <Play className="mr-2 h-4 w-4" />
                     {continuousAudio
-                      ? "✅ Continuous Audio Ready"
+                      ? "Continuous Audio Generated"
                       : isGeneratingContinuousAudio
                       ? "Generating & Analyzing Audio..."
                       : "Generate Continuous Audio + Timings"}
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-1 text-center">
-                    Natural voice flow with AI-powered scene timing detection
-                  </p>
-                  {continuousAudio && (
-                    <p className="text-xs text-green-600 mt-1 text-center">
-                      {continuousAudio.sceneTimings.length} scene timings
-                      detected • {Math.round(continuousAudio.totalDuration)}s
-                      total
-                    </p>
-                  )}
-                </div>
-
-                {/* Continuous Audio Player */}
-                {continuousAudio && (
-                  <Card className="mb-4">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          🎵 Continuous Audio Preview
-                        </span>
-                        <Button
-                          onClick={generateContinuousAudio}
-                          disabled={isGeneratingContinuousAudio}
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2"
-                        >
-                          {isGeneratingContinuousAudio ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="bg-black/5 rounded-lg p-3">
-                        <CustomAudioPlayer
-                          sceneId={-1} // Special ID for continuous audio
-                          audioUrl={continuousAudio.audioUrl}
-                        />
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          <div className="flex justify-between">
-                            <span>Natural voice flow</span>
-                            <span>
-                              {Math.round(continuousAudio.totalDuration)}s total
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Reset Controls */}
-                <div className="flex gap-2 text-sm">
-                  <Button
-                    onClick={resetAllVoices}
-                    disabled={
-                      isGeneratingAllVoices ||
-                      isGeneratingAllImages ||
-                      !scenes.some((s) => s.voiceUrl)
-                    }
-                    variant="ghost"
-                    size="sm"
-                    className="flex-1"
-                  >
-                    <Trash2 className="mr-1 h-3 w-3" />
-                    Clear Voices
-                  </Button>
                   <Button
                     onClick={resetAllImages}
                     disabled={
-                      isGeneratingAllVoices ||
-                      isGeneratingAllImages ||
-                      !scenes.some((s) => s.imageUrl)
+                      isGeneratingAllImages || !scenes.some((s) => s.imageUrl)
                     }
-                    variant="ghost"
                     size="sm"
                     className="flex-1"
                   >
@@ -1193,12 +986,10 @@ export default function SceneManagerPage() {
                   <Button
                     onClick={resetAllContent}
                     disabled={
-                      isGeneratingAllVoices ||
                       isGeneratingAllImages ||
                       (!scenes.some((s) => s.voiceUrl || s.imageUrl) &&
                         !continuousAudio)
                     }
-                    variant="ghost"
                     size="sm"
                     className="flex-1"
                   >
@@ -1206,39 +997,51 @@ export default function SceneManagerPage() {
                     Reset All
                   </Button>
                 </div>
+
+                {/* Continuous Audio Generation */}
+                <div className="mb-3"></div>
+
+                {/* Continuous Audio Player */}
+                {continuousAudio && (
+                  <div className="mb-3">
+                    <div className="flex items-center gap-3">
+                      <CustomAudioPlayer
+                        sceneId={-1} // Special ID for continuous audio
+                        audioUrl={continuousAudio.audioUrl}
+                      />
+                      <Button
+                        onClick={generateContinuousAudio}
+                        disabled={isGeneratingContinuousAudio}
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2"
+                      >
+                        {isGeneratingContinuousAudio ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Individual Scenes - 2 Column Grid */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Individual Scenes - 3 Column Grid */}
+            <div className="grid grid-cols-3 gap-3">
               {scenes.map((scene, index) => (
                 <Card key={scene.id}>
-                  <CardContent>
+                  <CardContent className="p-4">
                     {/* Scene header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <h3 className="font-medium text-base">
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-base text-muted-foreground font-bold">
                         Scene {scene.id}
                       </h3>
-                      <Badge
-                        variant={
-                          scene.voiceUrl && scene.imageUrl
-                            ? "default"
-                            : scene.voiceUrl || scene.imageUrl
-                            ? "destructive"
-                            : "secondary"
-                        }
-                        className="text-sm px-2 py-1"
-                      >
-                        {scene.voiceUrl && scene.imageUrl
-                          ? "Complete"
-                          : scene.voiceUrl || scene.imageUrl
-                          ? "Incomplete"
-                          : "Pending"}
-                      </Badge>
                     </div>
 
                     {/* Image and Text - 60/40 split */}
-                    <div className="flex gap-4 mb-4">
+                    <div className="flex gap-3 mb-3">
                       {/* Left: Image - 40% */}
                       <div className="w-2/5">
                         {scene.imageUrl ? (
@@ -1254,9 +1057,6 @@ export default function SceneManagerPage() {
                               alt={`Scene ${scene.id}`}
                               className="w-full h-full object-cover"
                             />
-
-                            {/* Green bullet - top left */}
-                            <div className="absolute top-2 left-2 w-3 h-3 bg-green-500 rounded-full z-20"></div>
 
                             {/* Regenerate button - top right */}
                             <Button
@@ -1315,55 +1115,9 @@ export default function SceneManagerPage() {
 
                       {/* Right: Text - 60% */}
                       <div className="w-3/5">
-                        <h4 className="text-sm font-medium mb-2">Scene Text</h4>
-                        <p className="text-sm bg-muted/30 py-3 rounded-lg leading-relaxed h-full">
+                        <p className="text-sm bg-muted/30 py-2 px-2 rounded-lg leading-relaxed h-full">
                           {scene.text}
                         </p>
-                      </div>
-                    </div>
-
-                    {/* Voice Section - Full width spanning both columns */}
-                    <div className="w-full">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center">
-                          {scene.voiceUrl && (
-                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
-                          )}
-                        </div>
-
-                        {scene.voiceUrl ? (
-                          <CustomAudioPlayer
-                            sceneId={scene.id}
-                            audioUrl={scene.voiceUrl}
-                          />
-                        ) : (
-                          <div className="flex-1 flex items-center justify-center h-12 bg-transparent text-sm text-gray-600">
-                            {scene.isGeneratingVoice ? (
-                              <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                                Generating...
-                              </>
-                            ) : (
-                              "No voice"
-                            )}
-                          </div>
-                        )}
-
-                        <Button
-                          onClick={() => regenerateSceneVoice(index)}
-                          disabled={scene.isGeneratingVoice}
-                          variant="outline"
-                          size="sm"
-                          className="h-8 w-8 p-0 shrink-0"
-                        >
-                          {scene.isGeneratingVoice ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : scene.voiceUrl ? (
-                            <RefreshCw className="h-3.5 w-3.5" />
-                          ) : (
-                            <Play className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -1479,7 +1233,7 @@ export default function SceneManagerPage() {
                     Master Video Preview
                   </p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Complete all scenes to create your video
+                    Complete all scenes and audio to create your video
                   </p>
 
                   <div className="space-y-3 text-sm">
@@ -1492,11 +1246,7 @@ export default function SceneManagerPage() {
                             : "text-orange-500"
                         }
                       >
-                        {continuousAudio
-                          ? "✅ Continuous"
-                          : `${scenes.filter((s) => s.voiceUrl).length} / ${
-                              scenes.length
-                            } Individual`}
+                        {continuousAudio ? "✅ Done" : " ❌ Missing"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">

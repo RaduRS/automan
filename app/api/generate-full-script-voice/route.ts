@@ -1,4 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { v2 as cloudinary } from "cloudinary";
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,13 +19,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ELEVENLABS_API_KEY = process.env.ELEVEN_LABS_API_KEY;
+    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
     const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
-    const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
+    const VOICE_NAME = process.env.GOOGLE_TTS_VOICE_NAME || "en-US-Neural2-D";
 
-    if (!ELEVENLABS_API_KEY) {
+    if (!GOOGLE_API_KEY) {
       return NextResponse.json(
-        { error: "ElevenLabs API key not configured" },
+        { error: "Google API key not configured" },
         { status: 500 }
       );
     }
@@ -29,26 +37,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("🎙️ Generating full script voice...");
+    console.log("🎙️ Generating full script voice with Google TTS...");
 
-    // Step 1: Generate voice for the entire script
+    // Step 1: Generate voice for the entire script using Google TTS
     const voiceResponse = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GOOGLE_API_KEY}`,
       {
         method: "POST",
         headers: {
-          Accept: "audio/mpeg",
           "Content-Type": "application/json",
-          "xi-api-key": ELEVENLABS_API_KEY,
         },
         body: JSON.stringify({
-          text: fullScript,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5,
-            style: 0.0,
-            use_speaker_boost: true,
+          input: { text: fullScript },
+          voice: {
+            languageCode: "en-US",
+            name: VOICE_NAME,
+            ssmlGender: "NEUTRAL",
+          },
+          audioConfig: {
+            audioEncoding: "LINEAR16",
+            speakingRate: 1,
+            pitch: 0,
+            volumeGainDb: 0,
+            sampleRateHertz: 24000,
+            effectsProfileId: [],
           },
         }),
       }
@@ -56,20 +68,53 @@ export async function POST(request: NextRequest) {
 
     if (!voiceResponse.ok) {
       const errorText = await voiceResponse.text();
-      console.error("ElevenLabs API error:", errorText);
+      console.error("Google TTS API error:", errorText);
       return NextResponse.json(
-        { error: `ElevenLabs API error: ${voiceResponse.status}` },
+        { error: `Google TTS API error: ${voiceResponse.status}` },
         { status: voiceResponse.status }
       );
     }
 
-    const audioBuffer = await voiceResponse.arrayBuffer();
-    const base64Audio = Buffer.from(audioBuffer).toString("base64");
-    const audioDataUrl = `data:audio/mpeg;base64,${base64Audio}`;
+    const voiceData = await voiceResponse.json();
+
+    if (!voiceData.audioContent) {
+      return NextResponse.json(
+        { error: "No audio content received from Google TTS" },
+        { status: 500 }
+      );
+    }
+
+    // Convert base64 audio content to buffer for Deepgram and Cloudinary
+    const audioBuffer = Buffer.from(voiceData.audioContent, "base64");
 
     console.log(
-      "✅ Full script voice generated, now transcribing with Deepgram..."
+      "✅ Full script voice generated with Google TTS, uploading to Cloudinary..."
     );
+
+    // Step 1.5: Upload audio to Cloudinary
+    const uploadResult = await new Promise<{ secure_url: string }>(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              resource_type: "auto",
+              folder: "continuous_audio",
+              public_id: `full_script_${Date.now()}`,
+              format: "wav",
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result as { secure_url: string });
+            }
+          )
+          .end(audioBuffer);
+      }
+    );
+
+    const cloudinaryAudioUrl = uploadResult.secure_url;
+    console.log("✅ Audio uploaded to Cloudinary:", cloudinaryAudioUrl);
+
+    console.log("🎯 Now transcribing with Deepgram for scene timing...");
 
     // Step 2: Send audio to Deepgram for transcription with timestamps
     const transcriptResponse = await fetch(
@@ -78,7 +123,7 @@ export async function POST(request: NextRequest) {
         method: "POST",
         headers: {
           Authorization: `Token ${DEEPGRAM_API_KEY}`,
-          "Content-Type": "audio/mpeg",
+          "Content-Type": "audio/wav",
         },
         body: audioBuffer,
       }
@@ -103,11 +148,9 @@ export async function POST(request: NextRequest) {
     // Step 4: Match scene texts to transcript segments
     const sceneTimings = matchScenesWithTimestamps(scenes, words);
 
-    console.log("✅ Scene timings calculated:", sceneTimings);
-
     return NextResponse.json({
       success: true,
-      audioUrl: audioDataUrl,
+      audioUrl: cloudinaryAudioUrl, // Return Cloudinary URL instead of data URL
       sceneTimings: sceneTimings,
       totalDuration: transcriptData.results?.channels?.[0]?.alternatives?.[0]
         ?.transcript

@@ -74,7 +74,7 @@ export function SimpleVideoCreator({
     } | null = null;
 
     try {
-      const storedContinuousAudio = localStorage.getItem("continuousAudio");
+      const storedContinuousAudio = localStorage.getItem("continuousAudioData");
       if (storedContinuousAudio) {
         continuousAudio = JSON.parse(storedContinuousAudio);
 
@@ -115,10 +115,11 @@ export function SimpleVideoCreator({
         ...audioDestination.stream.getAudioTracks(),
       ]);
 
-      // Try MP4 first for better TikTok compatibility
+      // Try MP4 first for better TikTok compatibility with high-quality audio
       const mediaRecorder = new MediaRecorder(combinedStream, {
         mimeType: 'video/mp4; codecs="avc1.42E01E"', // H.264 baseline
         videoBitsPerSecond: 2500000,
+        audioBitsPerSecond: 320000, // High-quality audio: 320kbps (CD quality)
       });
 
       const chunks: Blob[] = [];
