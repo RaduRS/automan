@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { supabase, uploadImageToCloudinary } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
 interface ImageResult {
   url: string;
