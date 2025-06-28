@@ -967,10 +967,10 @@ export default function SceneManagerPage() {
                     )}
                     <Play className="mr-2 h-4 w-4" />
                     {continuousAudio
-                      ? "Continuous Audio Generated"
+                      ? "Voice Generated"
                       : isGeneratingContinuousAudio
-                      ? "Generating & Analyzing Audio..."
-                      : "Generate Continuous Audio + Timings"}
+                      ? "Generating Voice..."
+                      : "Generate Voice"}
                   </Button>
                   <Button
                     onClick={resetAllImages}
