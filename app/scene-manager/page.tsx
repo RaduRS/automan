@@ -51,43 +51,145 @@ const MasterVideoComposition: React.FC<{
     voiceUrl: string;
   }>;
   sceneDurations: number[]; // Duration in frames for each scene
-}> = ({ scenes, sceneDurations }) => {
+  continuousAudio?: {
+    audioUrl: string;
+    sceneTimings: Array<{
+      sceneIndex: number;
+      startTime: number;
+      endTime: number;
+      text: string;
+    }>;
+    totalDuration: number;
+  } | null;
+}> = ({ scenes, sceneDurations, continuousAudio }) => {
   const frame = useCurrentFrame();
 
-  // Calculate cumulative start times for each scene
-  const sceneStartTimes = sceneDurations.reduce((acc, duration, index) => {
-    if (index === 0) {
-      acc.push(0);
-    } else {
-      acc.push(acc[index - 1] + sceneDurations[index - 1]);
-    }
-    return acc;
-  }, [] as number[]);
+  // Use AI-detected timings if continuous audio is available, otherwise use individual durations
+  let actualSceneDurations: number[];
+  let sceneStartTimes: number[];
+
+  if (
+    continuousAudio &&
+    continuousAudio.sceneTimings.length === scenes.length
+  ) {
+    // Use precise AI-detected scene timings
+    actualSceneDurations = continuousAudio.sceneTimings.map((timing) => {
+      const sceneDuration = timing.endTime - timing.startTime;
+      return Math.ceil(sceneDuration * 30); // Convert to frames (30fps)
+    });
+
+    sceneStartTimes = continuousAudio.sceneTimings.map((timing) => {
+      return Math.ceil(timing.startTime * 30); // Convert to frames
+    });
+  } else {
+    // Fallback to individual scene durations
+    actualSceneDurations = sceneDurations;
+    sceneStartTimes = sceneDurations.reduce((acc, duration, index) => {
+      if (index === 0) {
+        acc.push(0);
+      } else {
+        acc.push(acc[index - 1] + sceneDurations[index - 1]);
+      }
+      return acc;
+    }, [] as number[]);
+  }
 
   // Find which scene should be currently playing
+  const currentTimeInSeconds = frame / 30; // Convert frame to seconds
   let currentSceneIndex = 0;
-  for (let i = 0; i < sceneStartTimes.length; i++) {
-    if (frame >= sceneStartTimes[i]) {
-      currentSceneIndex = i;
-    } else {
-      break;
+
+  if (
+    continuousAudio &&
+    continuousAudio.sceneTimings.length === scenes.length
+  ) {
+    // Use continuous audio timing data for perfect sync
+    // Find the correct scene based on current time
+    let foundScene = false;
+    for (let i = 0; i < continuousAudio.sceneTimings.length; i++) {
+      const timing = continuousAudio.sceneTimings[i];
+      if (
+        currentTimeInSeconds >= timing.startTime &&
+        currentTimeInSeconds < timing.endTime
+      ) {
+        currentSceneIndex = i;
+        foundScene = true;
+        break;
+      }
+    }
+
+    // If no exact match found (can happen at boundaries), find the closest scene
+    if (!foundScene) {
+      // Find the scene we should be in based on the closest timing
+      for (let i = continuousAudio.sceneTimings.length - 1; i >= 0; i--) {
+        if (currentTimeInSeconds >= continuousAudio.sceneTimings[i].startTime) {
+          currentSceneIndex = i;
+          break;
+        }
+      }
+    }
+
+    // Ensure we don't go out of bounds
+    currentSceneIndex = Math.min(
+      Math.max(currentSceneIndex, 0),
+      scenes.length - 1
+    );
+  } else {
+    // Fallback to frame-based calculation
+    for (let i = 0; i < sceneStartTimes.length; i++) {
+      if (frame >= sceneStartTimes[i]) {
+        currentSceneIndex = i;
+      } else {
+        break;
+      }
     }
   }
 
   const currentScene = scenes[currentSceneIndex];
   if (!currentScene) return null;
 
-  // Calculate progress within the current scene
-  const sceneStartFrame = sceneStartTimes[currentSceneIndex];
-  const sceneDuration = sceneDurations[currentSceneIndex];
-  const frameInScene = frame - sceneStartFrame;
-  const progress = Math.min(frameInScene / sceneDuration, 1);
+  // We'll use global progress instead of individual scene progress for smooth movement
 
-  // Alternating pan directions: odd scenes (0,2,4...) bottom→top, even scenes (1,3,5...) top→bottom
-  const isBottomToTop = currentSceneIndex % 2 === 0;
-  const yOffset = isBottomToTop
-    ? 100 - progress * 200 // Bottom to top: start at +100, end at -100
-    : -100 + progress * 200; // Top to bottom: start at -100, end at +100
+  // Smooth continuous pan that flows between scenes
+  // Calculate global progress across all scenes for fluid movement
+  let globalProgress = 0;
+  if (
+    continuousAudio &&
+    continuousAudio.sceneTimings.length === scenes.length
+  ) {
+    globalProgress = currentTimeInSeconds / continuousAudio.totalDuration;
+  } else {
+    // Fallback for individual audio
+    const totalFrames = actualSceneDurations.reduce((sum, dur) => sum + dur, 0);
+    globalProgress = frame / totalFrames;
+  }
+
+  // Create a continuous sine wave movement that flows smoothly across scenes
+  // This ensures no static moments and smooth transitions between scenes
+  const waveProgress = globalProgress * scenes.length; // Scale to number of scenes
+  const yOffset = Math.sin(waveProgress * Math.PI) * 150; // Smooth wave motion ±150px
+
+  // Calculate fade transition between scenes (simplified to avoid flashing)
+  let currentSceneOpacity = 1;
+  let previousScene = null;
+  let previousSceneOpacity = 0;
+
+  if (
+    continuousAudio &&
+    continuousAudio.sceneTimings.length === scenes.length
+  ) {
+    const timing = continuousAudio.sceneTimings[currentSceneIndex];
+    const sceneStartTime = timing.startTime;
+    const timeInScene = currentTimeInSeconds - sceneStartTime;
+
+    const fadeInDuration = 0.3; // 0.3 second fade in only
+
+    // Only fade in at scene start (no fade out to avoid flashing)
+    if (timeInScene < fadeInDuration && currentSceneIndex > 0) {
+      currentSceneOpacity = timeInScene / fadeInDuration;
+      previousScene = scenes[currentSceneIndex - 1];
+      previousSceneOpacity = 1 - currentSceneOpacity;
+    }
+  }
 
   return (
     <div
@@ -99,6 +201,27 @@ const MasterVideoComposition: React.FC<{
         overflow: "hidden",
       }}
     >
+      {/* Previous scene (for fade transitions) */}
+      {previousScene && (
+        <img
+          src={previousScene.imageUrl}
+          style={{
+            width: "130%",
+            height: "130%",
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: `translate(-50%, calc(-50% + ${yOffset}px))`,
+            objectFit: "cover",
+            objectPosition: "center",
+            opacity: previousSceneOpacity,
+            zIndex: 1,
+          }}
+          alt="Previous Scene"
+        />
+      )}
+
+      {/* Current scene */}
       <img
         src={currentScene.imageUrl}
         style={{
@@ -110,20 +233,31 @@ const MasterVideoComposition: React.FC<{
           transform: `translate(-50%, calc(-50% + ${yOffset}px))`,
           objectFit: "cover",
           objectPosition: "center",
+          opacity: currentSceneOpacity,
+          zIndex: 2,
         }}
         alt="Scene"
       />
 
-      {/* Sequential Audio using Sequence for proper timing */}
-      {scenes.map((scene, index) => (
-        <Sequence
-          key={scene.id}
-          from={sceneStartTimes[index]}
-          durationInFrames={sceneDurations[index]}
-        >
-          <Audio src={scene.voiceUrl} />
-        </Sequence>
-      ))}
+      {/* Audio - use continuous audio with precise timings if available */}
+      {continuousAudio &&
+      continuousAudio.sceneTimings.length === scenes.length ? (
+        // Single continuous audio track
+        <Audio src={continuousAudio.audioUrl} />
+      ) : (
+        // Fallback to individual scene audio using Sequence
+        scenes
+          .filter((scene) => scene.voiceUrl)
+          .map((scene, index) => (
+            <Sequence
+              key={scene.id}
+              from={sceneStartTimes[index]}
+              durationInFrames={actualSceneDurations[index]}
+            >
+              <Audio src={scene.voiceUrl} />
+            </Sequence>
+          ))
+      )}
     </div>
   );
 };
@@ -158,6 +292,20 @@ export default function SceneManagerPage() {
     null
   );
   const [sceneDurations, setSceneDurations] = useState<number[]>([]);
+
+  // Continuous audio with precise timing
+  const [continuousAudio, setContinuousAudio] = useState<{
+    audioUrl: string;
+    sceneTimings: Array<{
+      sceneIndex: number;
+      startTime: number;
+      endTime: number;
+      text: string;
+    }>;
+    totalDuration: number;
+  } | null>(null);
+  const [isGeneratingContinuousAudio, setIsGeneratingContinuousAudio] =
+    useState(false);
 
   // Audio player state management
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
@@ -297,11 +445,35 @@ export default function SceneManagerPage() {
 
   useEffect(() => {
     fetchLatestScript();
+
+    // Load continuous audio from localStorage
+    try {
+      const storedContinuousAudio = localStorage.getItem("continuousAudio");
+      if (storedContinuousAudio) {
+        setContinuousAudio(JSON.parse(storedContinuousAudio));
+      }
+    } catch {
+      console.log("No continuous audio found in localStorage");
+    }
   }, []);
 
   // Calculate scene durations when scenes with audio are updated
   useEffect(() => {
     const calculateDurations = async () => {
+      // If continuous audio is available, use those timings
+      if (
+        continuousAudio &&
+        continuousAudio.sceneTimings.length === scenes.length
+      ) {
+        const durations = continuousAudio.sceneTimings.map((timing) => {
+          const sceneDuration = timing.endTime - timing.startTime;
+          return Math.ceil(sceneDuration * 30); // Convert to frames (30fps)
+        });
+        setSceneDurations(durations);
+        return;
+      }
+
+      // Fallback to individual scene audio durations
       const scenesWithAudio = scenes.filter(
         (scene) => scene.voiceUrl && scene.imageUrl
       );
@@ -322,7 +494,7 @@ export default function SceneManagerPage() {
     };
 
     calculateDurations();
-  }, [scenes]);
+  }, [scenes, continuousAudio]);
 
   // Handle video creation completion
   const handleVideoCreated = (videoUrl: string) => {
@@ -617,6 +789,53 @@ export default function SceneManagerPage() {
     }
   };
 
+  const generateContinuousAudio = async () => {
+    if (!scriptData) return;
+
+    setIsGeneratingContinuousAudio(true);
+    try {
+      const fullScript = scenes.map((scene) => scene.text).join(" ");
+      const sceneTexts = scenes.map((scene) => scene.text);
+
+      const response = await fetch("/api/generate-full-script-voice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fullScript,
+          scenes: sceneTexts,
+          title: scriptData.title,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const continuousAudioData = {
+          audioUrl: data.audioUrl,
+          sceneTimings: data.sceneTimings,
+          totalDuration: data.totalDuration,
+        };
+        setContinuousAudio(continuousAudioData);
+
+        // Save to localStorage for use in video creation
+        localStorage.setItem(
+          "continuousAudio",
+          JSON.stringify(continuousAudioData)
+        );
+        console.log("✅ Continuous audio with timings generated successfully");
+      } else {
+        console.error("Failed to generate continuous audio");
+        setError("Failed to generate continuous audio with scene timings");
+      }
+    } catch (error) {
+      console.error("Error generating continuous audio:", error);
+      setError("Failed to generate continuous audio");
+    } finally {
+      setIsGeneratingContinuousAudio(false);
+    }
+  };
+
   const regenerateSceneVoice = async (sceneIndex: number) => {
     setScenes((prev) =>
       prev.map((scene, index) =>
@@ -771,7 +990,12 @@ export default function SceneManagerPage() {
 
       return updatedScenes;
     });
-    console.log("🗑️ Cleared all voices and images");
+
+    // Clear continuous audio
+    setContinuousAudio(null);
+    localStorage.removeItem("continuousAudio");
+
+    console.log("🗑️ Cleared all voices, images, and continuous audio");
   };
 
   if (loading) {
@@ -864,6 +1088,78 @@ export default function SceneManagerPage() {
                   </Button>
                 </div>
 
+                {/* Continuous Audio Generation */}
+                <div className="mb-4">
+                  <Button
+                    onClick={generateContinuousAudio}
+                    disabled={isGeneratingContinuousAudio}
+                    variant={continuousAudio ? "default" : "secondary"}
+                    className="w-full"
+                  >
+                    {isGeneratingContinuousAudio && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    <Play className="mr-2 h-4 w-4" />
+                    {continuousAudio
+                      ? "✅ Continuous Audio Ready"
+                      : isGeneratingContinuousAudio
+                      ? "Generating & Analyzing Audio..."
+                      : "Generate Continuous Audio + Timings"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1 text-center">
+                    Natural voice flow with AI-powered scene timing detection
+                  </p>
+                  {continuousAudio && (
+                    <p className="text-xs text-green-600 mt-1 text-center">
+                      {continuousAudio.sceneTimings.length} scene timings
+                      detected • {Math.round(continuousAudio.totalDuration)}s
+                      total
+                    </p>
+                  )}
+                </div>
+
+                {/* Continuous Audio Player */}
+                {continuousAudio && (
+                  <Card className="mb-4">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          🎵 Continuous Audio Preview
+                        </span>
+                        <Button
+                          onClick={generateContinuousAudio}
+                          disabled={isGeneratingContinuousAudio}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2"
+                        >
+                          {isGeneratingContinuousAudio ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="bg-black/5 rounded-lg p-3">
+                        <CustomAudioPlayer
+                          sceneId={-1} // Special ID for continuous audio
+                          audioUrl={continuousAudio.audioUrl}
+                        />
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          <div className="flex justify-between">
+                            <span>Natural voice flow</span>
+                            <span>
+                              {Math.round(continuousAudio.totalDuration)}s total
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Reset Controls */}
                 <div className="flex gap-2 text-sm">
                   <Button
@@ -899,7 +1195,8 @@ export default function SceneManagerPage() {
                     disabled={
                       isGeneratingAllVoices ||
                       isGeneratingAllImages ||
-                      !scenes.some((s) => s.voiceUrl || s.imageUrl)
+                      (!scenes.some((s) => s.voiceUrl || s.imageUrl) &&
+                        !continuousAudio)
                     }
                     variant="ghost"
                     size="sm"
@@ -1079,7 +1376,9 @@ export default function SceneManagerPage() {
         {/* Right Side: Fixed Master Preview */}
         <div className="w-96 p-6 bg-muted/30">
           <div className="sticky top-6">
-            {allVoicesGenerated && allImagesGenerated && scenes.length > 1 ? (
+            {(allVoicesGenerated || continuousAudio) &&
+            allImagesGenerated &&
+            scenes.length > 1 ? (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1092,31 +1391,51 @@ export default function SceneManagerPage() {
                     <Player
                       component={MasterVideoComposition}
                       inputProps={{
-                        scenes: scenes
-                          .filter((scene) => scene.voiceUrl && scene.imageUrl)
-                          .map((scene) => ({
-                            id: scene.id,
-                            text: scene.text,
-                            imageUrl: scene.imageUrl!,
-                            voiceUrl: scene.voiceUrl!,
-                          })),
-                        sceneDurations:
-                          sceneDurations.length > 0
-                            ? sceneDurations
-                            : scenes
-                                .filter(
-                                  (scene) => scene.voiceUrl && scene.imageUrl
-                                )
-                                .map(() => 150),
+                        scenes: (() => {
+                          const filteredScenes = scenes
+                            .filter(
+                              (scene) =>
+                                scene.imageUrl &&
+                                (scene.voiceUrl || continuousAudio)
+                            )
+                            .map((scene) => ({
+                              id: scene.id,
+                              text: scene.text,
+                              imageUrl: scene.imageUrl!,
+                              voiceUrl: scene.voiceUrl || "", // Empty string when using continuous audio
+                            }));
+
+                          return filteredScenes;
+                        })(),
+                        sceneDurations: (() => {
+                          const durations =
+                            sceneDurations.length > 0
+                              ? sceneDurations
+                              : scenes
+                                  .filter(
+                                    (scene) =>
+                                      scene.imageUrl &&
+                                      (scene.voiceUrl || continuousAudio)
+                                  )
+                                  .map(() => 150);
+
+                          return durations;
+                        })(),
+                        continuousAudio: continuousAudio,
                       }}
                       durationInFrames={
-                        sceneDurations.length > 0
+                        continuousAudio &&
+                        continuousAudio.sceneTimings.length === scenes.length
+                          ? Math.ceil(continuousAudio.totalDuration * 30) // Use continuous audio total duration
+                          : sceneDurations.length > 0
                           ? sceneDurations.reduce(
                               (sum, duration) => sum + duration,
                               0
                             )
                           : scenes.filter(
-                              (scene) => scene.voiceUrl && scene.imageUrl
+                              (scene) =>
+                                scene.imageUrl &&
+                                (scene.voiceUrl || continuousAudio)
                             ).length * 150
                       }
                       compositionWidth={1080}
@@ -1132,14 +1451,22 @@ export default function SceneManagerPage() {
                   </div>
 
                   <SimpleVideoCreator
-                    scenes={scenes
-                      .filter((scene) => scene.voiceUrl && scene.imageUrl)
-                      .map((scene) => ({
-                        id: scene.id,
-                        text: scene.text,
-                        imageUrl: scene.imageUrl!,
-                        voiceUrl: scene.voiceUrl!,
-                      }))}
+                    scenes={(() => {
+                      const filteredScenes = scenes
+                        .filter(
+                          (scene) =>
+                            scene.imageUrl &&
+                            (scene.voiceUrl || continuousAudio)
+                        )
+                        .map((scene) => ({
+                          id: scene.id,
+                          text: scene.text,
+                          imageUrl: scene.imageUrl!,
+                          voiceUrl: scene.voiceUrl || "", // Empty string when using continuous audio
+                        }));
+
+                      return filteredScenes;
+                    })()}
                     onVideoCreated={handleVideoCreated}
                   />
                 </CardContent>
@@ -1157,16 +1484,19 @@ export default function SceneManagerPage() {
 
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between items-center">
-                      <span>Voices:</span>
+                      <span>Audio:</span>
                       <span
                         className={
-                          scenes.every((s) => s.voiceUrl)
+                          continuousAudio || scenes.every((s) => s.voiceUrl)
                             ? "text-green-600"
                             : "text-orange-500"
                         }
                       >
-                        {scenes.filter((s) => s.voiceUrl).length} /{" "}
-                        {scenes.length}
+                        {continuousAudio
+                          ? "✅ Continuous"
+                          : `${scenes.filter((s) => s.voiceUrl).length} / ${
+                              scenes.length
+                            } Individual`}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -1183,14 +1513,20 @@ export default function SceneManagerPage() {
                       </span>
                     </div>
 
-                    {!allVoicesGenerated || !allImagesGenerated ? (
+                    {!(continuousAudio || allVoicesGenerated) ||
+                    !allImagesGenerated ? (
                       <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded text-orange-700">
                         <p className="text-xs font-medium mb-1">
                           Missing content detected
                         </p>
                         <p className="text-xs">
-                          Use the ▶️ buttons next to individual scenes to
-                          generate missing voices or images manually
+                          {!continuousAudio &&
+                          !allVoicesGenerated &&
+                          !allImagesGenerated
+                            ? "Generate continuous audio and images to create video"
+                            : !allImagesGenerated
+                            ? "Generate missing images to create video"
+                            : "Generate continuous audio or individual voices to create video"}
                         </p>
                       </div>
                     ) : null}

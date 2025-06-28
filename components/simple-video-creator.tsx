@@ -61,6 +61,29 @@ export function SimpleVideoCreator({
     setProgress(0);
     setCurrentStep("Preparing canvas...");
 
+    // Check for continuous audio data in localStorage
+    let continuousAudio: {
+      audioUrl: string;
+      sceneTimings: Array<{
+        sceneIndex: number;
+        startTime: number;
+        endTime: number;
+        text: string;
+      }>;
+      totalDuration: number;
+    } | null = null;
+
+    try {
+      const storedContinuousAudio = localStorage.getItem("continuousAudio");
+      if (storedContinuousAudio) {
+        continuousAudio = JSON.parse(storedContinuousAudio);
+
+        setCurrentStep("Using continuous audio with AI-powered timings...");
+      }
+    } catch {
+      console.log("No continuous audio found, using individual scene audio");
+    }
+
     try {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
@@ -108,6 +131,23 @@ export function SimpleVideoCreator({
       setCurrentStep("Loading images and audio...");
       setProgress(10);
 
+      // Load continuous audio buffer if available
+      let continuousAudioBuffer: AudioBuffer | null = null;
+      if (
+        continuousAudio &&
+        continuousAudio.sceneTimings.length === scenes.length
+      ) {
+        try {
+          const audioResponse = await fetch(continuousAudio.audioUrl);
+          const arrayBuffer = await audioResponse.arrayBuffer();
+          continuousAudioBuffer = await audioContext.decodeAudioData(
+            arrayBuffer
+          );
+        } catch (error) {
+          console.error("Failed to load continuous audio:", error);
+        }
+      }
+
       // Load all images, audio, and get durations
       const sceneData: Array<{
         image: HTMLImageElement;
@@ -118,22 +158,30 @@ export function SimpleVideoCreator({
       for (let i = 0; i < scenes.length; i++) {
         const scene = scenes[i];
         try {
+          // Only load individual audio if not using continuous audio
+          const shouldLoadIndividualAudio =
+            !continuousAudioBuffer && scene.voiceUrl;
+
           const [image, duration] = await Promise.all([
             loadImage(scene.imageUrl),
-            getAudioDuration(scene.voiceUrl),
+            shouldLoadIndividualAudio
+              ? getAudioDuration(scene.voiceUrl)
+              : Promise.resolve(5), // Default 5s when using continuous
           ]);
 
-          // Load audio buffer for Web Audio API
+          // Load audio buffer for Web Audio API (only if not using continuous audio)
           let audioBuffer: AudioBuffer | undefined;
-          try {
-            const audioResponse = await fetch(scene.voiceUrl);
-            const arrayBuffer = await audioResponse.arrayBuffer();
-            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-          } catch (audioError) {
-            console.error(
-              `Failed to load audio for scene ${i + 1}:`,
-              audioError
-            );
+          if (shouldLoadIndividualAudio) {
+            try {
+              const audioResponse = await fetch(scene.voiceUrl);
+              const arrayBuffer = await audioResponse.arrayBuffer();
+              audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            } catch (audioError) {
+              console.error(
+                `Failed to load audio for scene ${i + 1}:`,
+                audioError
+              );
+            }
           }
 
           sceneData.push({ image, duration, audioBuffer });
@@ -221,27 +269,57 @@ export function SimpleVideoCreator({
           return;
         }
 
-        // Calculate scene durations in frames - MUST match scene-manager calculation exactly
-        const sceneDurationsInFrames = sceneData.map((scene) => {
-          // Use the same calculation as scene-manager: Math.ceil(duration * 30)
-          return Math.ceil(scene.duration * 30); // Convert to frames (30fps) - matches Remotion
-        });
+        // Calculate scene durations - use continuous audio timings if available
+        let sceneDurationsInFrames: number[];
+        let totalDuration: number;
 
-        // Use frame-based total duration to match Remotion exactly
-        const totalFrames = sceneDurationsInFrames.reduce(
-          (sum, frames) => sum + frames,
-          0
-        );
-        const totalDuration = totalFrames / 30; // Convert frames back to seconds
+        if (
+          continuousAudio &&
+          continuousAudio.sceneTimings.length === scenes.length
+        ) {
+          // Use precise timings from Deepgram transcription
+          sceneDurationsInFrames = continuousAudio.sceneTimings.map(
+            (timing) => {
+              const sceneDuration = timing.endTime - timing.startTime;
+              return Math.ceil(sceneDuration * 30); // Convert to frames (30fps)
+            }
+          );
+
+          // Use exact total duration from continuous audio
+          totalDuration = continuousAudio.totalDuration;
+        } else {
+          // Fallback to individual scene durations
+          sceneDurationsInFrames = sceneData.map((scene) => {
+            return Math.ceil(scene.duration * 30); // Convert to frames (30fps)
+          });
+
+          const totalFrames = sceneDurationsInFrames.reduce(
+            (sum, frames) => sum + frames,
+            0
+          );
+          totalDuration = totalFrames / 30; // Convert frames back to seconds
+        }
 
         let currentFrame = 0;
         let sceneIndex = 0;
         let sceneStartFrame = 0;
         let currentAudioSource: AudioBufferSourceNode | null = null;
+        let continuousAudioSource: AudioBufferSourceNode | null = null;
 
-        // Play audio for the current scene
+        // Use high-precision timing to prevent drift
+        const animationStartTime = audioContext.currentTime;
+
+        // Start continuous audio if available
+        if (continuousAudioBuffer) {
+          continuousAudioSource = audioContext.createBufferSource();
+          continuousAudioSource.buffer = continuousAudioBuffer;
+          continuousAudioSource.connect(audioDestination);
+          continuousAudioSource.start(audioContext.currentTime);
+        }
+
+        // Play audio for the current scene (fallback for individual scene audio)
         const playSceneAudio = (scene: (typeof sceneData)[0]) => {
-          if (scene.audioBuffer) {
+          if (!continuousAudioSource && scene.audioBuffer) {
             const source = audioContext.createBufferSource();
             source.buffer = scene.audioBuffer;
             source.connect(audioDestination);
@@ -268,6 +346,9 @@ export function SimpleVideoCreator({
               if (currentAudioSource) {
                 currentAudioSource.stop();
               }
+              if (continuousAudioSource) {
+                continuousAudioSource.stop();
+              }
               audioContext.close();
               mediaRecorder.stop();
               return;
@@ -278,16 +359,86 @@ export function SimpleVideoCreator({
               throw new Error(`Scene ${sceneIndex} is undefined`);
             }
 
-            const sceneFrameDuration = sceneDurationsInFrames[sceneIndex];
-            const frameInScene = currentFrame - sceneStartFrame;
-            const sceneProgress = Math.min(
-              frameInScene / sceneFrameDuration,
-              1
-            );
+            // Use EXACT same logic as Remotion for perfect sync
+            // Use precise audio context time instead of frame-based calculation to prevent drift
+            const currentTimeInSeconds = continuousAudio
+              ? audioContext.currentTime - animationStartTime
+              : currentFrame / 30;
+            let currentSceneIndex = 0;
+            let sceneProgress: number;
 
-            // Start audio for new scene
-            if (frameInScene === 0 && scene.audioBuffer) {
-              currentAudioSource = playSceneAudio(scene);
+            if (
+              continuousAudio &&
+              continuousAudio.sceneTimings.length === scenes.length
+            ) {
+              // Use continuous audio timing data for perfect sync (SAME AS REMOTION)
+              // Find the correct scene based on current time
+              let foundScene = false;
+              for (let i = 0; i < continuousAudio.sceneTimings.length; i++) {
+                const timing = continuousAudio.sceneTimings[i];
+                if (
+                  currentTimeInSeconds >= timing.startTime &&
+                  currentTimeInSeconds < timing.endTime
+                ) {
+                  currentSceneIndex = i;
+                  foundScene = true;
+                  break;
+                }
+              }
+
+              // If no exact match found (can happen at boundaries), find the closest scene
+              if (!foundScene) {
+                // Find the scene we should be in based on the closest timing
+                for (
+                  let i = continuousAudio.sceneTimings.length - 1;
+                  i >= 0;
+                  i--
+                ) {
+                  if (
+                    currentTimeInSeconds >=
+                    continuousAudio.sceneTimings[i].startTime
+                  ) {
+                    currentSceneIndex = i;
+                    break;
+                  }
+                }
+              }
+
+              // Ensure we don't go out of bounds
+              currentSceneIndex = Math.min(
+                Math.max(currentSceneIndex, 0),
+                scenes.length - 1
+              );
+
+              // Calculate progress within the current scene (SAME AS REMOTION)
+              const timing = continuousAudio.sceneTimings[currentSceneIndex];
+              const sceneStartTime = timing.startTime;
+              const sceneDuration = timing.endTime - timing.startTime;
+              const timeInScene = currentTimeInSeconds - sceneStartTime;
+              sceneProgress = Math.min(
+                Math.max(timeInScene / sceneDuration, 0),
+                1
+              );
+            } else {
+              // Fallback to frame-based calculations (original logic)
+              const sceneFrameDuration = sceneDurationsInFrames[sceneIndex];
+              const frameInScene = currentFrame - sceneStartFrame;
+              sceneProgress = Math.min(frameInScene / sceneFrameDuration, 1);
+              currentSceneIndex = sceneIndex; // Keep existing scene index logic for fallback
+            }
+
+            // Update sceneIndex to match the detected scene
+            if (currentSceneIndex !== sceneIndex) {
+              sceneIndex = currentSceneIndex;
+              sceneStartFrame = currentFrame; // Reset for any remaining frame-based logic
+            }
+
+            // Start audio for new scene (only for individual scene audio, not continuous)
+            if (!continuousAudioSource && scene.audioBuffer) {
+              const frameInScene = currentFrame - sceneStartFrame;
+              if (frameInScene === 0) {
+                currentAudioSource = playSceneAudio(scene);
+              }
             }
 
             // Clear canvas with black background
@@ -297,11 +448,51 @@ export function SimpleVideoCreator({
             // Fixed zoom at 1.2x
             const zoom = 1.2;
 
-            // Alternating pan directions: odd scenes (0,2,4...) bottom→top, even scenes (1,3,5...) top→bottom
-            const isBottomToTop = sceneIndex % 2 === 0;
-            const yOffset = isBottomToTop
-              ? 100 - sceneProgress * 200 // Bottom to top: start at +200, end at -200
-              : -100 + sceneProgress * 200; // Top to bottom: start at -200, end at +200
+            // Smooth continuous pan that flows between scenes (SAME AS REMOTION)
+            // Calculate global progress across all scenes for fluid movement
+            let globalProgress = 0;
+            if (
+              continuousAudio &&
+              continuousAudio.sceneTimings.length === scenes.length
+            ) {
+              globalProgress =
+                currentTimeInSeconds / continuousAudio.totalDuration;
+            } else {
+              // Fallback for individual audio
+              const totalFrames = sceneDurationsInFrames.reduce(
+                (sum, dur) => sum + dur,
+                0
+              );
+              globalProgress = currentFrame / totalFrames;
+            }
+
+            // Create a continuous sine wave movement that flows smoothly across scenes
+            // This ensures no static moments and smooth transitions between scenes
+            const waveProgress = globalProgress * scenes.length; // Scale to number of scenes
+            const yOffset = Math.sin(waveProgress * Math.PI) * 150; // Smooth wave motion ±150px
+
+            // Calculate fade transition between scenes (simplified to avoid flashing)
+            let currentSceneOpacity = 1;
+            let previousSceneData = null;
+            let previousSceneOpacity = 0;
+
+            if (
+              continuousAudio &&
+              continuousAudio.sceneTimings.length === scenes.length
+            ) {
+              const timing = continuousAudio.sceneTimings[currentSceneIndex];
+              const sceneStartTime = timing.startTime;
+              const timeInScene = currentTimeInSeconds - sceneStartTime;
+
+              const fadeInDuration = 0.3; // 0.3 second fade in only
+
+              // Only fade in at scene start (no fade out to avoid flashing)
+              if (timeInScene < fadeInDuration && currentSceneIndex > 0) {
+                currentSceneOpacity = timeInScene / fadeInDuration;
+                previousSceneData = sceneData[currentSceneIndex - 1];
+                previousSceneOpacity = 1 - currentSceneOpacity;
+              }
+            }
 
             // Calculate image dimensions to fit canvas while maintaining aspect ratio
             const imgAspect = scene.image.width / scene.image.height;
@@ -321,8 +512,24 @@ export function SimpleVideoCreator({
             const x = (canvas.width - drawWidth) / 2;
             const y = (canvas.height - drawHeight) / 2 + yOffset;
 
-            // Draw image with effects
+            // Draw previous scene for fade transition
+            if (previousSceneData && previousSceneOpacity > 0) {
+              ctx.globalAlpha = previousSceneOpacity;
+              ctx.drawImage(
+                previousSceneData.image,
+                x,
+                y,
+                drawWidth,
+                drawHeight
+              );
+            }
+
+            // Draw current scene with fade
+            ctx.globalAlpha = currentSceneOpacity;
             ctx.drawImage(scene.image, x, y, drawWidth, drawHeight);
+
+            // Reset alpha for other drawing operations
+            ctx.globalAlpha = 1;
 
             // Update progress with more granular tracking
             const currentTime = currentFrame / 30; // Convert frame to time for progress
@@ -339,18 +546,12 @@ export function SimpleVideoCreator({
 
             currentFrame++; // Increment frame counter
 
-            // Check if scene is complete
-            if (frameInScene >= sceneFrameDuration) {
-              // Stop current audio
-              if (currentAudioSource) {
-                currentAudioSource.stop();
-                currentAudioSource = null;
-              }
-              sceneIndex++;
-              sceneStartFrame = currentFrame;
-            }
+            // Check if we've reached the end of the video based on time, not scene index
+            const videoComplete = continuousAudio
+              ? currentTimeInSeconds >= continuousAudio.totalDuration
+              : sceneIndex >= sceneData.length;
 
-            if (sceneIndex < sceneData.length) {
+            if (!videoComplete) {
               setTimeout(animate, 1000 / 30); // 30 FPS
             } else {
               setTimeout(() => {
@@ -358,6 +559,9 @@ export function SimpleVideoCreator({
                 setProgress(95);
                 if (currentAudioSource) {
                   currentAudioSource.stop();
+                }
+                if (continuousAudioSource) {
+                  continuousAudioSource.stop();
                 }
                 audioContext.close();
                 mediaRecorder.stop();
