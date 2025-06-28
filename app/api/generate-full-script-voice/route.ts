@@ -255,7 +255,28 @@ function matchScenesWithTimestamps(
       }
     }
 
-    breakPoints.push(bestBreakIndex + 1);
+    // FIXED: Ensure break points are unique and ascending
+    const proposedBreakPoint = bestBreakIndex + 1;
+    const lastBreakPoint = breakPoints[breakPoints.length - 1];
+
+    if (proposedBreakPoint <= lastBreakPoint) {
+      // If proposed break point is not advancing, force it to be at least 1 word ahead
+      const minBreakPoint = lastBreakPoint + 1;
+      if (minBreakPoint < words.length) {
+        breakPoints.push(minBreakPoint);
+      } else {
+        // Not enough words left, use equal distribution for remaining scenes
+        const remainingWords = words.length - lastBreakPoint;
+        const remainingScenes = scenes.length - i;
+        const wordsPerRemainingScene = Math.max(
+          1,
+          Math.floor(remainingWords / remainingScenes)
+        );
+        breakPoints.push(lastBreakPoint + wordsPerRemainingScene);
+      }
+    } else {
+      breakPoints.push(proposedBreakPoint);
+    }
   }
 
   console.log(
@@ -265,8 +286,13 @@ function matchScenesWithTimestamps(
   // Use EXACT Deepgram timestamps - no modifications
   for (let i = 0; i < scenes.length; i++) {
     const startWordIndex = breakPoints[i];
-    const endWordIndex =
+    let endWordIndex =
       i === scenes.length - 1 ? words.length - 1 : breakPoints[i + 1] - 1;
+
+    // FIXED: Additional safety check to ensure endWordIndex > startWordIndex
+    if (endWordIndex <= startWordIndex) {
+      endWordIndex = Math.min(startWordIndex + 1, words.length - 1);
+    }
 
     // Use EXACT timestamps from Deepgram - no hardcoded minimums or corrections
     const startTime = words[startWordIndex]?.start || 0;

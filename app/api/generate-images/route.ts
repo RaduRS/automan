@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-import Replicate from "replicate";
-
-// Configure Replicate
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+import { supabase, uploadImageToCloudinary } from "@/lib/supabase";
 
 interface ImageGenerationResult {
   prompts: string[];
@@ -96,22 +90,63 @@ async function generateImages(
 
   for (const prompt of prompts) {
     try {
-      const input = {
-        prompt: `${prompt}. High quality, professional, suitable for social media content.`,
-        go_fast: true,
-        num_outputs: 1,
-        aspect_ratio: "9:16", // Perfect for vertical social media
-        output_format: "png",
-        output_quality: 80,
-      };
+      console.log(
+        "Calling Nebius API with prompt:",
+        prompt.substring(0, 100) + "..."
+      );
 
-      const output = await replicate.run("black-forest-labs/flux-schnell", {
-        input,
-      });
+      const response = await fetch(
+        "https://api.studio.nebius.ai/v1/images/generations",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.NEBIUS_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "black-forest-labs/flux-schnell",
+            prompt: `${prompt}. High quality, professional, suitable for social media content.`,
+            width: 768,
+            height: 1344,
+            num_inference_steps: 4,
+            negative_prompt: "blurry, low quality, pixelated, distorted, ugly",
+            response_extension: "png",
+            response_format: "b64_json",
+            seed: -1,
+          }),
+        }
+      );
 
-      if (output && Array.isArray(output) && output[0]) {
+      if (!response.ok) {
+        throw new Error(
+          `Nebius API error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const data = await response.json();
+      console.log(
+        "Nebius API response received with base64 data for prompt:",
+        prompt.substring(0, 50) + "..."
+      );
+
+      if (data.data && data.data[0] && data.data[0].b64_json) {
+        // Create unique filename (without extension, Cloudinary will add it)
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(7);
+        const filename = `batch-image-${timestamp}-${random}`;
+
+        // Upload to Cloudinary (consistent with your existing setup)
+        const imageUrl = await uploadImageToCloudinary(
+          data.data[0].b64_json,
+          filename
+        );
+        console.log(
+          "Successfully uploaded high-quality PNG image to Cloudinary:",
+          imageUrl
+        );
+
         images.push({
-          url: output[0].toString(),
+          url: imageUrl,
           prompt: prompt,
         });
       }
@@ -169,7 +204,7 @@ export async function POST(request: NextRequest) {
     );
 
     console.log("Generated prompts:", prompts);
-    console.log("Generating images with FLUX Schnell...");
+    console.log("Generating images with Nebius...");
     const images = await generateImages(prompts);
 
     console.log(`Generated ${images.length} images successfully`);

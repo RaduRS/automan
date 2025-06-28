@@ -673,8 +673,19 @@ export default function SceneManagerPage() {
         prev.map((scene) => ({ ...scene, isGeneratingImage: true }))
       );
 
-      // Generate images using existing sentence-to-image API
-      for (let i = 0; i < scenes.length; i++) {
+      console.log("🚀 Starting concurrent image generation for all scenes...");
+
+      // Create concurrent image generation promises with staggered delays
+      const imagePromises = scenes.map(async (scene, index) => {
+        // Stagger requests by 800ms to avoid overwhelming the API
+        const delay = index * 800;
+
+        if (delay > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+
+        console.log(`🎨 Starting image generation for scene ${index + 1}...`);
+
         try {
           const response = await fetch("/api/generate-sentence-image", {
             method: "POST",
@@ -682,24 +693,25 @@ export default function SceneManagerPage() {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              sentence: scenes[i].text,
+              sentence: scene.text,
               scriptContext: scriptData?.script,
             }),
           });
 
           if (response.ok) {
             const data = await response.json();
+            console.log(`✅ Scene ${index + 1} image generated successfully`);
 
-            // Update the specific scene with the generated image
+            // Update this specific scene immediately as it completes
             setScenes((prev) => {
-              const updatedScenes = prev.map((scene, index) =>
-                index === i
+              const updatedScenes = prev.map((s, i) =>
+                i === index
                   ? {
-                      ...scene,
+                      ...s,
                       isGeneratingImage: false,
                       imageUrl: data.image.url,
                     }
-                  : scene
+                  : s
               );
 
               // Save to localStorage after each successful generation
@@ -710,25 +722,52 @@ export default function SceneManagerPage() {
 
               return updatedScenes;
             });
+
+            return { success: true, index, imageUrl: data.image.url };
           } else {
-            throw new Error(`Failed to generate image for scene ${i + 1}`);
+            throw new Error(`Failed to generate image for scene ${index + 1}`);
           }
         } catch (sceneError) {
           console.error(
-            `Error generating image for scene ${i + 1}:`,
+            `❌ Error generating image for scene ${index + 1}:`,
             sceneError
           );
 
-          // Mark this scene as failed
+          // Mark this scene as failed immediately
           setScenes((prev) =>
-            prev.map((scene, index) =>
-              index === i ? { ...scene, isGeneratingImage: false } : scene
+            prev.map((s, i) =>
+              i === index ? { ...s, isGeneratingImage: false } : s
             )
           );
+
+          return { success: false, index, error: sceneError };
         }
+      });
+
+      // Wait for all images to complete (successful or failed)
+      const results = await Promise.allSettled(imagePromises);
+
+      // Count results
+      const successful = results.filter(
+        (r) => r.status === "fulfilled" && r.value.success
+      ).length;
+      const failed = results.filter(
+        (r) =>
+          r.status === "rejected" ||
+          (r.status === "fulfilled" && !r.value.success)
+      ).length;
+
+      console.log(
+        `🎯 Image generation complete: ${successful} successful, ${failed} failed`
+      );
+
+      if (failed > 0) {
+        setError(
+          `${failed} image(s) failed to generate. Check console for details.`
+        );
       }
     } catch (error) {
-      console.error("Error generating images:", error);
+      console.error("Error in concurrent image generation:", error);
       setError("Failed to generate images");
       setScenes((prev) =>
         prev.map((scene) => ({ ...scene, isGeneratingImage: false }))
@@ -1032,7 +1071,7 @@ export default function SceneManagerPage() {
             <div className="grid grid-cols-3 gap-3">
               {scenes.map((scene, index) => (
                 <Card key={scene.id}>
-                  <CardContent className="p-4">
+                  <CardContent>
                     {/* Scene header */}
                     <div className="flex items-center gap-3 mb-3">
                       <h3 className="text-base text-muted-foreground font-bold">
@@ -1334,7 +1373,7 @@ export default function SceneManagerPage() {
                   ""
                 }
                 alt={`Scene ${selectedImageScene}`}
-                className="w-full h-auto rounded max-h-[65vh] object-cover mb-3"
+                className="w-full h-auto rounded max-h-[65vh] object-contain mb-3"
               />
               <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded">
                 {scenes.find((s) => s.id === selectedImageScene)?.text}
