@@ -629,11 +629,9 @@ export default function SceneManagerPage() {
             audioData.totalDuration
           ) {
             setContinuousAudio(audioData);
-            console.log("✅ Restored continuous audio from Cloudinary");
           } else {
             // Clean up invalid data
             localStorage.removeItem("continuousAudioData");
-            console.log("🧹 Cleaned up invalid continuous audio data");
           }
         }
       } catch (error) {
@@ -813,7 +811,6 @@ export default function SceneManagerPage() {
           totalDuration: data.totalDuration,
         };
         localStorage.setItem("continuousAudioData", JSON.stringify(audioData));
-        console.log("✅ Continuous audio with timings generated successfully");
       } else {
         console.error("Failed to generate continuous audio");
         setError("Failed to generate continuous audio with scene timings");
@@ -915,8 +912,6 @@ export default function SceneManagerPage() {
     // Clear continuous audio
     setContinuousAudio(null);
     localStorage.removeItem("continuousAudioData");
-
-    console.log("🗑️ Cleared all voices, images, and continuous audio");
   };
 
   if (loading) {

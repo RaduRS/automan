@@ -40,9 +40,10 @@ Create prompts that:
 - Include specific details about style, composition, lighting
 - Are suitable for social media content
 - Focus on landscapes, objects, abstract concepts, or people from a distance
-- AVOID any hands, fingers, or close-up human gestures
+- AVOID any hands, fingers, or close-up human gestures that show hand details
 - AVOID any text, writing, letters, numbers, or written content
-- AVOID any scenes requiring fine details like handwriting or typing
+- AVOID any scenes requiring fine details like handwriting, typing, pointing, holding objects, or hand interactions
+- PREFER: Wide shots, environmental scenes, architectural elements, natural phenomena, or symbolic objects
 
 Return only the prompts, one per line, without numbering or extra text.`,
           },
@@ -110,7 +111,8 @@ async function generateImages(
             width: 768,
             height: 1344,
             num_inference_steps: 4,
-            negative_prompt: "blurry, low quality, pixelated, distorted, ugly",
+            negative_prompt:
+              "blurry, low quality, pixelated, distorted, ugly, hands, fingers, human hands, finger details, hand gestures, pointing, holding objects with hands, close-up hands, detailed fingers, hand anatomy, malformed hands, extra fingers, missing fingers, weird hands, hand movements, grasping",
             response_extension: "png",
             response_format: "b64_json",
             seed: -1,

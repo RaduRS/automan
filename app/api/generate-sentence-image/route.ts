@@ -55,7 +55,8 @@ REQUIREMENTS:
 For "${sentence}", choose ONE approach and describe a single, powerful scene in 1-2 sentences.
 
 AVOID: Generic business imagery, men in suits, corporate settings, repetitive concepts.
-FOCUS: The unique emotional core of this specific sentence.`,
+AVOID COMPLETELY: Any hands, fingers, hand gestures, pointing, holding objects, handshakes, typing, writing, or close-up human interactions requiring detailed hand anatomy.
+FOCUS: The unique emotional core of this specific sentence using landscapes, architecture, distant figures, objects, or abstract forms.`,
         },
       ],
     });
@@ -96,7 +97,7 @@ async function generateImage(prompt: string): Promise<string> {
           height: 1344,
           num_inference_steps: 4,
           negative_prompt:
-            "blurry, low quality, pixelated, distorted, ugly, deformed, text, writing, letters",
+            "blurry, low quality, pixelated, distorted, ugly, deformed, text, writing, letters, hands, fingers, human hands, finger details, hand gestures, pointing, holding objects with hands, close-up hands, detailed fingers, hand anatomy, malformed hands, extra fingers, missing fingers, weird hands, hand movements, grasping",
           response_extension: "png",
           response_format: "b64_json",
           seed: -1,

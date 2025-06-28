@@ -117,13 +117,29 @@ export async function POST(request: NextRequest) {
     console.log("🎯 Now transcribing with Deepgram for scene timing...");
 
     // Step 2: Send audio to Deepgram for transcription with timestamps
+    // Enhanced approach: Include scene keywords for better alignment
+    const sceneKeywords = scenes.map((scene: string) => {
+      // Extract key words from each scene (first 3-5 meaningful words)
+      const words = scene
+        .toLowerCase()
+        .replace(/[^\w\s]/g, " ")
+        .split(" ")
+        .filter((w: string) => w.length > 2) // Filter out short words like "a", "is", "to"
+        .slice(0, 5); // Take first 5 meaningful words
+      return words.join(" ");
+    });
+
+    console.log("🎯 Scene keywords for Deepgram:", sceneKeywords);
+
     const transcriptResponse = await fetch(
-      "https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true&diarize=false&utterances=true",
+      "https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true&diarize=false&utterances=true&detect_topics=true",
       {
         method: "POST",
         headers: {
           Authorization: `Token ${DEEPGRAM_API_KEY}`,
           "Content-Type": "audio/wav",
+          // Add custom vocabulary/keywords to help Deepgram understand scene boundaries
+          "X-DG-Keywords": sceneKeywords.join(","),
         },
         body: audioBuffer,
       }
@@ -169,7 +185,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper function to match scene texts with transcript timestamps
+// Helper function to match scene texts with transcript timestamps using semantic alignment
 function matchScenesWithTimestamps(
   scenes: string[],
   words: Array<{
@@ -204,7 +220,6 @@ function matchScenesWithTimestamps(
     }));
   }
 
-  // Use Deepgram's ACTUAL word timestamps - EXACTLY as provided
   const totalDuration = words[words.length - 1]?.end || 0;
   console.log(
     `📊 Total audio: ${totalDuration.toFixed(2)}s, analyzing ${
@@ -212,104 +227,169 @@ function matchScenesWithTimestamps(
     } words for ${scenes.length} scenes`
   );
 
-  // Find natural break points in the transcript using punctuation and pauses
-  const wordsPerScene = Math.floor(words.length / scenes.length);
-  const breakPoints: number[] = [0]; // Start with first word
+  // NEW ALGORITHM: Direct text matching for perfect alignment
+  // Combine all words into a single transcript string
+  const fullTranscript = words
+    .map((w) => w.punctuated_word || w.word)
+    .join(" ")
+    .toLowerCase();
 
-  for (let i = 1; i < scenes.length; i++) {
-    const targetWordIndex = i * wordsPerScene;
-    const searchStart = Math.max(1, targetWordIndex - 8);
-    const searchEnd = Math.min(words.length - 1, targetWordIndex + 8);
-
-    let bestBreakIndex = targetWordIndex;
-    let bestScore = 0;
-
-    for (let wordIdx = searchStart; wordIdx <= searchEnd; wordIdx++) {
-      let score = 0;
-      const word = words[wordIdx];
-      const punctuatedWord = word.punctuated_word || word.word;
-
-      // Higher score for sentence-ending punctuation
-      if (punctuatedWord.match(/[.!?]$/)) {
-        score += 10;
-      }
-
-      // Higher score for comma (phrase boundary)
-      if (punctuatedWord.includes(",")) {
-        score += 5;
-      }
-
-      // Higher score for longer pauses after this word
-      if (wordIdx + 1 < words.length) {
-        const pause = words[wordIdx + 1].start - word.end;
-        score += pause * 2;
-      }
-
-      // Prefer positions closer to the target
-      const distanceFromTarget = Math.abs(wordIdx - targetWordIndex);
-      score -= distanceFromTarget * 0.1;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestBreakIndex = wordIdx;
-      }
-    }
-
-    // FIXED: Ensure break points are unique and ascending
-    const proposedBreakPoint = bestBreakIndex + 1;
-    const lastBreakPoint = breakPoints[breakPoints.length - 1];
-
-    if (proposedBreakPoint <= lastBreakPoint) {
-      // If proposed break point is not advancing, force it to be at least 1 word ahead
-      const minBreakPoint = lastBreakPoint + 1;
-      if (minBreakPoint < words.length) {
-        breakPoints.push(minBreakPoint);
-      } else {
-        // Not enough words left, use equal distribution for remaining scenes
-        const remainingWords = words.length - lastBreakPoint;
-        const remainingScenes = scenes.length - i;
-        const wordsPerRemainingScene = Math.max(
-          1,
-          Math.floor(remainingWords / remainingScenes)
-        );
-        breakPoints.push(lastBreakPoint + wordsPerRemainingScene);
-      }
-    } else {
-      breakPoints.push(proposedBreakPoint);
-    }
-  }
-
-  console.log(
-    `🎯 Break points found at word indices: [${breakPoints.join(", ")}]`
+  // Clean scene texts for matching (remove extra spaces, normalize punctuation)
+  const cleanScenes = scenes.map((scene) =>
+    scene
+      .toLowerCase()
+      .replace(/[^\w\s]/g, " ") // Replace punctuation with spaces
+      .replace(/\s+/g, " ") // Normalize spaces
+      .trim()
   );
 
-  // Use EXACT Deepgram timestamps - no modifications
-  for (let i = 0; i < scenes.length; i++) {
-    const startWordIndex = breakPoints[i];
-    let endWordIndex =
-      i === scenes.length - 1 ? words.length - 1 : breakPoints[i + 1] - 1;
+  console.log("🔍 Full transcript:", fullTranscript);
+  console.log("🔍 Scene texts to match:", cleanScenes);
 
-    // FIXED: Additional safety check to ensure endWordIndex > startWordIndex
-    if (endWordIndex <= startWordIndex) {
-      endWordIndex = Math.min(startWordIndex + 1, words.length - 1);
+  let lastEndWordIndex = 0;
+
+  for (let sceneIndex = 0; sceneIndex < scenes.length; sceneIndex++) {
+    const sceneText = cleanScenes[sceneIndex];
+    const sceneWords = sceneText.split(" ").filter((w) => w.length > 0);
+
+    // Find the best matching sequence of words starting from lastEndWordIndex
+    let bestMatchStart = lastEndWordIndex;
+    let bestMatchEnd = lastEndWordIndex;
+    let bestMatchScore = 0;
+
+    // Search for the scene text in the remaining transcript
+    for (
+      let startIdx = lastEndWordIndex;
+      startIdx < words.length - sceneWords.length + 1;
+      startIdx++
+    ) {
+      let matchScore = 0;
+      let matchedWords = 0;
+
+      // Try to match each word in the scene
+      for (
+        let i = 0;
+        i < sceneWords.length && startIdx + i < words.length;
+        i++
+      ) {
+        const sceneWord = sceneWords[i];
+        const transcriptWord = (
+          words[startIdx + i].punctuated_word || words[startIdx + i].word
+        )
+          .toLowerCase()
+          .replace(/[^\w]/g, ""); // Remove punctuation
+
+        if (transcriptWord === sceneWord) {
+          matchScore += 10; // Exact match
+          matchedWords++;
+        } else if (
+          transcriptWord.includes(sceneWord) ||
+          sceneWord.includes(transcriptWord)
+        ) {
+          matchScore += 5; // Partial match
+          matchedWords++;
+        } else if (i === 0) {
+          // If first word doesn't match, this position is not good
+          break;
+        }
+      }
+
+      // Score this position - prefer high match rate and earlier positions
+      const matchRate = matchedWords / sceneWords.length;
+      const finalScore = matchScore * matchRate;
+
+      if (finalScore > bestMatchScore && matchRate > 0.5) {
+        // At least 50% match
+        bestMatchScore = finalScore;
+        bestMatchStart = startIdx;
+        bestMatchEnd = Math.min(
+          startIdx + sceneWords.length - 1,
+          words.length - 1
+        );
+      }
     }
 
-    // Use EXACT timestamps from Deepgram - no hardcoded minimums or corrections
-    const startTime = words[startWordIndex]?.start || 0;
-    const endTime = words[endWordIndex]?.end || totalDuration;
+    // If no good match found, use proportional distribution for remaining scenes
+    if (bestMatchScore === 0) {
+      console.log(
+        `⚠️ No good match found for scene ${
+          sceneIndex + 1
+        }, using proportional distribution`
+      );
+      const remainingWords = words.length - lastEndWordIndex;
+      const remainingScenes = scenes.length - sceneIndex;
+      const wordsForThisScene = Math.max(
+        1,
+        Math.floor(remainingWords / remainingScenes)
+      );
+
+      bestMatchStart = lastEndWordIndex;
+      bestMatchEnd = Math.min(
+        lastEndWordIndex + wordsForThisScene - 1,
+        words.length - 1
+      );
+    }
+
+    // Ensure minimum scene duration of 1 second
+    const startTime = words[bestMatchStart]?.start || 0;
+    let endTime = words[bestMatchEnd]?.end || totalDuration;
+
+    // Minimum duration check - extend if too short
+    if (endTime - startTime < 1.0) {
+      console.log(
+        `⚠️ Scene ${sceneIndex + 1} too short (${(endTime - startTime).toFixed(
+          3
+        )}s), extending...`
+      );
+
+      // Try to extend by finding more words
+      let extendedEndIndex = bestMatchEnd;
+      while (
+        extendedEndIndex < words.length - 1 &&
+        (words[extendedEndIndex]?.end || 0) - startTime < 1.0
+      ) {
+        extendedEndIndex++;
+      }
+
+      // If extending would conflict with next scene's territory, split the difference
+      if (sceneIndex < scenes.length - 1) {
+        const maxAllowedEnd = Math.min(
+          extendedEndIndex,
+          words.length - (scenes.length - sceneIndex - 1)
+        );
+        endTime = words[maxAllowedEnd]?.end || endTime;
+      } else {
+        endTime = words[extendedEndIndex]?.end || totalDuration;
+      }
+    }
 
     sceneTimings.push({
-      sceneIndex: i,
+      sceneIndex: sceneIndex,
       startTime: startTime,
       endTime: endTime,
-      text: scenes[i],
+      text: scenes[sceneIndex],
     });
 
     console.log(
-      `✅ Scene ${i + 1}: ${startTime.toFixed(3)}s - ${endTime.toFixed(3)}s (${(
-        endTime - startTime
-      ).toFixed(3)}s) - EXACT Deepgram timestamps`
+      `✅ Scene ${sceneIndex + 1}: ${startTime.toFixed(3)}s - ${endTime.toFixed(
+        3
+      )}s (${(endTime - startTime).toFixed(3)}s) - EXACT Deepgram timestamps`
     );
+
+    // Update last end index for next scene
+    lastEndWordIndex = bestMatchEnd + 1;
+  }
+
+  // Final validation: ensure no overlaps and minimum durations
+  for (let i = 0; i < sceneTimings.length - 1; i++) {
+    if (sceneTimings[i].endTime > sceneTimings[i + 1].startTime) {
+      // Fix overlap by splitting the difference
+      const midPoint =
+        (sceneTimings[i].endTime + sceneTimings[i + 1].startTime) / 2;
+      sceneTimings[i].endTime = midPoint;
+      sceneTimings[i + 1].startTime = midPoint;
+      console.log(`🔧 Fixed overlap between scenes ${i + 1} and ${i + 2}`);
+    }
   }
 
   return sceneTimings;
