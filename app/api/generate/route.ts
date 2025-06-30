@@ -14,7 +14,7 @@ interface GeneratedContent {
   hashtags: string;
 }
 
-export async function generateScript(
+async function generateScript(
   transcripts: string[]
 ): Promise<GeneratedContent> {
   const combinedTranscripts = transcripts
