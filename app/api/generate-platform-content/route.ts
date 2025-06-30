@@ -94,7 +94,7 @@ Respond with ONLY valid JSON in this exact format:
 }`;
 
   const completion = await openai.chat.completions.create({
-    model: "o3-mini",
+    model: "gpt-4o-mini",
     messages: [
       {
         role: "user",

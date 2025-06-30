@@ -9,54 +9,43 @@ interface ImageResult {
   id?: string;
 }
 
-async function generateImagePrompt(
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function generateImagePrompt(
   sentence: string,
   scriptContext?: string
 ): Promise<string> {
   try {
-    // Create the context-aware prompt for OpenAI
     const contextPrompt = scriptContext
-      ? `Full script context: "${scriptContext}"\n\nSpecific sentence: "${sentence}"`
+      ? `Full script context: "${scriptContext}"\n\nSpecific sentence for this image: "${sentence}"`
       : `Sentence: "${sentence}"`;
 
-    // Use OpenAI o3-mini to generate a creative image prompt based on the sentence
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
     const completion = await openai.chat.completions.create({
-      model: "o3-mini",
+      // Consider upgrading to "gpt-4o-mini" for even better results if repetition continues.
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "user",
-          content: `${contextPrompt}
+          content: `You are an expert art director. Your task is to generate a creative prompt for a black and white photograph based on a sentence from a motivational script.
 
-Create a powerful black and white photograph that visually represents the core emotion and meaning of this specific sentence.
+CONTEXT:
+${contextPrompt}
 
-ANALYZE THE SENTENCE:
-- What is the main emotion? (peace, strength, freedom, growth, struggle, breakthrough, etc.)
-- What visual metaphor would best represent this concept?
-- Should this be about people, nature, objects, architecture, or abstract forms?
+**YOUR THOUGHT PROCESS (Chain-of-Thought):**
+1.  **Analyze the Sentence's Core Concept:** What is the central idea? (e.g., overcoming a struggle, the power of connection, a new beginning).
+2.  **Brainstorm Multiple Visual Metaphors:** Based on the core concept, list 3-4 COMPLETELY DIFFERENT visual metaphors. You MUST use a mix of approaches: Nature, Symbolic Objects, Solitary Figures, and Architecture. For example, for "connection," you could brainstorm: a) a bridge, b) intertwining roots of a tree, c) two hands almost touching, d) light beams converging.
+3.  **Select the Most Creative & Unique Option:** Review your brainstormed list. Choose the metaphor that is the most emotionally powerful and visually interesting. AVOID common or repetitive ideas like bridges or simple staircases if other options are available.
+4.  **Describe the Final Scene:** Write a detailed, 1-2 sentence description of your chosen metaphor.
 
-VISUAL APPROACH OPTIONS - Choose the MOST impactful for this sentence:
-1. NATURE: landscapes, weather, trees, water, sky, mountains, storms, sunrise/sunset
-2. HUMAN MOMENTS: genuine emotions, gestures, solitude, reflection, action (NO business suits)
-3. SYMBOLIC OBJECTS: chains, keys, doors, bridges, paths, mirrors, tools, books
-4. ARCHITECTURE: stairs, windows, buildings, ruins, structures that tell a story
-5. ABSTRACT FORMS: shadows, light patterns, textures, geometric shapes
+**CRITICAL REQUIREMENTS:**
+-   The final output must be ONLY the 1-2 sentence description for the image generator. DO NOT output your thought process or brainstorming list.
+-   The image MUST be black and white.
+-   The image MUST NOT contain any text, words, letters, or numbers.
+-   Strive for visual diversity across a full script. If the script mentions "connection" multiple times, use a different metaphor each time.
 
-REQUIREMENTS:
-- Black and white photography
-- NO text, words, or writing anywhere
-- Choose the most emotionally resonant visual approach
-- Be specific about composition, lighting, and mood
-- Create something a real photographer could capture
-
-For "${sentence}", choose ONE approach and describe a single, powerful scene in 1-2 sentences.
-
-AVOID: Generic business imagery, men in suits, corporate settings, repetitive concepts.
-AVOID COMPLETELY: Any hands, fingers, hand gestures, pointing, holding objects, handshakes, typing, writing, or close-up human interactions requiring detailed hand anatomy.
-FOCUS: The unique emotional core of this specific sentence using landscapes, architecture, distant figures, objects, or abstract forms.`,
+Now, apply this process for the sentence: "${sentence}".`,
         },
       ],
     });
@@ -70,10 +59,10 @@ FOCUS: The unique emotional core of this specific sentence using landscapes, arc
     return prompt;
   } catch (error) {
     console.error("Error generating prompt with OpenAI:", error);
-    // Fallback: generate a basic prompt based on the sentence
-    return `A serene natural landscape with dramatic lighting, representing inner peace and personal growth`;
+    return `A dramatic black and white abstract scene with high contrast lighting, symbolizing an internal struggle and breakthrough, moody atmosphere, no text.`;
   }
 }
+
 
 async function generateImage(prompt: string): Promise<string> {
   try {
@@ -97,7 +86,7 @@ async function generateImage(prompt: string): Promise<string> {
           height: 1344,
           num_inference_steps: 4,
           negative_prompt:
-            "blurry, low quality, pixelated, distorted, ugly, deformed, text, writing, letters, hands, fingers, human hands, finger details, hand gestures, pointing, holding objects with hands, close-up hands, detailed fingers, hand anatomy, malformed hands, extra fingers, missing fingers, weird hands, hand movements, grasping",
+            "blurry, low quality, pixelated, distorted, ugly, deformed, text, writing, letters",
           response_extension: "png",
           response_format: "b64_json",
           seed: -1,
@@ -158,8 +147,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Generate image prompt using OpenAI o3-mini
-    console.log("Generating image prompt with OpenAI o3-mini...");
+    // Step 1: Generate image prompt using OpenAI gpt-4o-mini
+    console.log("Generating image prompt with OpenAI gpt-4o-mini...");
     const imagePrompt = await generateImagePrompt(
       sentence.trim(),
       scriptContext?.trim()

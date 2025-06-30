@@ -112,7 +112,7 @@ async function generateImages(
             height: 1344,
             num_inference_steps: 4,
             negative_prompt:
-              "blurry, low quality, pixelated, distorted, ugly, hands, fingers, human hands, finger details, hand gestures, pointing, holding objects with hands, close-up hands, detailed fingers, hand anatomy, malformed hands, extra fingers, missing fingers, weird hands, hand movements, grasping",
+              "blurry, low quality, pixelated, distorted, ugly, deformed, text, writing, letters",
             response_extension: "png",
             response_format: "b64_json",
             seed: -1,

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import OpenAI from "openai";
 
-// Configure OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -15,91 +14,45 @@ interface GeneratedContent {
   hashtags: string;
 }
 
-async function generateScript(
+export async function generateScript(
   transcripts: string[]
 ): Promise<GeneratedContent> {
   const combinedTranscripts = transcripts
     .map((t, i) => `Video ${i + 1}:\n${t}`)
     .join("\n\n");
 
-  // Count words in original content for reference
-  const originalWordCount = combinedTranscripts.split(/\s+/).length;
+  const prompt = `You are "Peak Script", an expert viral scriptwriter for men's self-improvement content. Your target audience is ambitious men (20-40) seeking practical discipline strategies. Your tone is authentic, direct, and conversational—like a friend giving real advice.
 
-  const prompt = `Transform these motivational/discipline TikTok transcripts into an authentic, scroll-stopping script that preserves the raw, conversational energy.
+You will transform the following transcripts into a new, original, scroll-stopping script, outputting it as a JSON object containing a title, description, and an array of scenes.
 
-TRANSCRIPTS:
+**SOURCE TRANSCRIPTS:**
 ${combinedTranscripts}
+TARGET SCRIPT LENGTH: Strictly between 180-200 words (optimized for a video duration of approximately 60 seconds).
 
-ORIGINAL WORD COUNT: ${originalWordCount} words
-TARGET SCRIPT LENGTH: 150-200 words maximum (optimized for 40-60 second videos)
+**YOUR THOUGHT PROCESS (Chain-of-Thought):**
+1.  **Deconstruct Core Message:** What is the single most powerful idea or insight from the source transcripts?
+2.  **Brainstorm Hooks:** Based on the core message, brainstorm 3 different, powerful opening hooks using the "APPROVED OPENING PATTERNS". They must feel authentic and not cliché.
+3.  **Select Best Hook:** Choose the most potent, scroll-stopping hook from the brainstormed list.
+4.  **Draft the Script:** (In Your Head) Mentally draft a complete, ~180-word script that starts with the chosen hook and develops the core message. It must be conversational and provide practical insight.
+5.  **Refine & Polish:** Review the draft against all "CRITICAL RULES & CONSTRAINTS". Fix any banned phrases, check grammar, and ensure it flows like natural speech.
+6.  **Breakdown and Refine Scenes:** Follow the SCENE BREAKDOWN INSTRUCTIONS.
+7.  **Generate Metadata:** Create a compelling title and a short description. The description MUST end with an engaging question for the audience.
 
-TARGET AUDIENCE: Ambitious men aged 20-40 seeking discipline, self-improvement, and peak performance. They struggle with consistency and want practical strategies, not just motivational fluff.
+**CRITICAL RULES & CONSTRAINTS:**
+-   **Tone:** Authentic, direct, conversational, no corporate fluff.
+-   **Banned Words/Phrases:** "The brutal truth is...", "Unleash", "Dominate", "Conquer", "Elevate", "Transform your mindset", "Ancient wisdom", "Unlock your potential", "It's time to...", "Ever notice", "You ever", "Did you ever". Avoid all generic hustle-culture buzzwords.
+-   **Output Format:** You MUST return ONLY a valid JSON object. Do not include any text or markdown before or after the JSON.
 
-CONTENT FOCUS: Motivational Content & Discipline Transformation, Daily discipline strategies, Success scenarios, Men's self-improvement, Ancient wisdom for modern challenges.
-
-CRITICAL TONE REQUIREMENTS:
-- PRESERVE the conversational, authentic voice from the original transcripts
-- Keep the natural flow and rhythm - don't make it sound scripted
-- Use the SAME energy level as the original content
-- Maintain any slang, casual language, or personality quirks that make it authentic
-- Sound like someone talking to a friend, not giving a corporate presentation
-
-BANNED PHRASES & WORDS (DO NOT USE):
-- "The brutal truth is..."
-- "Unleash", "Dominate", "Conquer", "Destroy", "Elevate"  
-- "Transform your mindset"
-- "Ancient wisdom"
-- "Unlock your potential"
-- "It's time to..." (unless naturally occurring in original)
-- Generic hustle culture buzzwords
-- Corporate motivational speak
-
-SCRIPT STRUCTURE REQUIREMENTS:
-1. AUTHENTIC HOOK (First 3-5 seconds): Use natural, conversational opening that feels real - questions, observations, or relatable statements
-2. KEEP IT REAL: Maintain the speaking style and energy of the original content
-3. PRACTICAL INSIGHT: Give actionable advice in natural language
-4. RELATABLE CONCLUSION: End with something that feels genuine, not forced
-5. NATURAL CALL TO ACTION: If included, make it feel organic to the conversation
-
-CRITICAL HOOK REQUIREMENTS:
-- NEVER start with "Ever notice", "You ever", "Did you ever" - these are BANNED
-- Use FRESH, powerful openings that grab attention immediately
-- Each script must have PERFECT grammar and flow naturally
-
-APPROVED OPENING PATTERNS (choose one):
-- Bold statements: "Most guys get this wrong..." "Nobody talks about this..." "This changed everything..."
-- Direct challenges: "Stop playing that game..." "Cut that out..." "Here's your problem..."
-- Powerful observations: "Here's the thing..." "Look..." "I noticed something..."
-- Personal insights: "I figured out..." "Here's what changed for me..." "Let me tell you something..."
-- Questions (NOT "ever" questions): "You know what's crazy?" "Know what I realized?" "What if I told you..."
-- Relatable scenarios: "Picture this..." "You know that feeling when..." "We've all been there..."
-
-GRAMMAR & FLOW REQUIREMENTS:
-- Check EVERY sentence for proper grammar
-- Ensure natural speech patterns
-- Fix any awkward phrasing immediately
-- Each scene must be a complete, well-formed thought
-
-PRESERVE AUTHENTICITY:
-- Keep any natural speech patterns from the original transcripts
-- Don't over-polish the language - rough edges make it real
-- Use contractions and casual language when appropriate
-- Maintain the emotional tone and intensity of the original
-- Let personality shine through instead of corporate polish
-
-BANNED PHRASES & PATTERNS:
-- "Ever notice", "You ever", "Did you ever" - NEVER USE THESE
-- "The brutal truth is..."
-- "Unleash", "Dominate", "Conquer", "Destroy", "Elevate"
-- "Transform your mindset", "Ancient wisdom", "Unlock your potential"
-- Template language and buzzwords
-- Poor grammar like "You have so fucking potential" (should be "You have so fucking MUCH potential")
-- Generic openings that sound like every other motivational post
+**SCENE BREAKDOWN INSTRUCTIONS (CRITICAL):**
+- Your primary task is to generate the "scenes" array. The full script will be constructed from this array.
+- Each scene = 1 sentence. **Semantic Cohesion Rule:** If two consecutive sentences are directly related and form a single idea (like a setup and a payoff, or a person and their achievement), you MUST combine them into a single scene.
+- **Target Scene Count:** The final number of scenes MUST be between 8 and 12. This is the ideal range for a ~60-second video to maintain viewer engagement.
+- **This is the most important rule: Every single string in the "scenes" array MUST be between 10 and 25 words.** This is a strict requirement.
+}
 
 CRITICAL: You MUST return the response in this EXACT JSON format:
 
 {
-  "script": "The complete script as one piece...",
   "scenes": [
     "First scene sentence here",
     "Second scene sentence here",
@@ -107,62 +60,52 @@ CRITICAL: You MUST return the response in this EXACT JSON format:
   ],
   "title": "Video title here",
   "description": "Description here",
-  "hashtags": "#Tag1 #Tag2 #Tag3"
 }
-
-SCENE BREAKDOWN INSTRUCTIONS:
-- Take your complete script and BREAK IT into 6-12 individual sentences
-- Each scene = 1 sentence that makes sense on its own
-- When played together, scenes = the complete script
-- Each sentence should be 8-25 words (good for voice timing)
-
-EXAMPLE:
-If script is: "You know what's crazy? Most people quit right before their breakthrough. Here's what I learned..."
-Then scenes should be: ["You know what's crazy?", "Most people quit right before their breakthrough.", "Here's what I learned..."]`;
-
-  const completion = await openai.chat.completions.create({
-    model: "o3-mini",
-    messages: [
-      {
-        role: "user",
-        content: `You create viral motivational scripts for men aged 20-40. Create a complete script AND break it into individual sentences (scenes) for video production.
-
-IMPORTANT: Respond with ONLY valid JSON, no markdown. Follow the exact format shown in the prompt.
-
-${prompt}`,
-      },
-    ],
-  });
-
-  const response = completion.choices[0]?.message?.content;
-  if (!response) {
-    throw new Error("No response from OpenAI");
-  }
-
-  console.log("🤖 Raw OpenAI Response:", response);
+`;
 
   try {
-    // Handle potential markdown code blocks from OpenAI
-    let jsonString = response.trim();
-    if (jsonString.startsWith("```json")) {
-      jsonString = jsonString.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-    } else if (jsonString.startsWith("```")) {
-      jsonString = jsonString.replace(/^```\s*/, "").replace(/\s*```$/, "");
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      // Enforce JSON output for reliability
+      response_format: { type: "json_object" },
+      // Parameters to discourage repetition
+      frequency_penalty: 0.4,
+      presence_penalty: 0.4,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    const contentString = completion.choices[0]?.message?.content;
+    if (!contentString) {
+      throw new Error("No content received from OpenAI");
     }
 
-    console.log("🔍 Cleaned JSON String:", jsonString);
+    // Parse the JSON response
+    const generatedContent: GeneratedContent = JSON.parse(contentString);
 
-    const parsedContent = JSON.parse(jsonString);
-    console.log(
-      "✅ Parsed OpenAI Content:",
-      JSON.stringify(parsedContent, null, 2)
-    );
+    // Programmatically add your strategic hashtags
+    generatedContent.hashtags =
+      "#peakshifts #motivation #selfimprovement #discipline #mindsetshift";
 
-    return parsedContent;
-  } catch (parseError) {
-    console.error("❌ Failed to parse OpenAI response:", response);
-    console.error("❌ Parse error:", parseError);
-    throw new Error("Invalid JSON response from OpenAI");
+    const scenes = generatedContent.scenes;
+
+    generatedContent.script = scenes.join(" ");
+
+    return generatedContent;
+  } catch (error) {
+    console.error("Error in generateScript:", error);
+    // Provide a fallback JSON object in case of error
+    return {
+      script: "Something went wrong. Could not generate script.",
+      scenes: ["Error generating script."],
+      title: "Error",
+      description: "An error occurred.",
+      hashtags: "#peakshifts #error",
+    };
   }
 }
 
