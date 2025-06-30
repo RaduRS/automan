@@ -13,7 +13,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function generateImagePrompt(
+async function generateImagePrompt(
   sentence: string,
   scriptContext?: string
 ): Promise<string> {

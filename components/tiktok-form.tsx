@@ -14,8 +14,6 @@ import {
   Clock,
   Copy,
   FileText,
-  Images,
-  Download,
 } from "lucide-react";
 
 interface JobStatus {
@@ -69,10 +67,6 @@ export function TikTokForm() {
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
-  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState<
-    Array<{ url: string; prompt: string }>
-  >([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,52 +168,7 @@ export function TikTokForm() {
     setJobStatus(null);
     setError(null);
     setIsSubmitting(false);
-    setGeneratedImages([]);
     setIsCopied(false);
-  };
-
-  const generateImages = async () => {
-    if (!jobStatus?.id) return;
-
-    setIsGeneratingImages(true);
-    try {
-      const response = await fetch("/api/generate-images", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ jobId: jobStatus.id }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setGeneratedImages(data.data.images);
-      } else {
-        const errorData = await response.json();
-        setError(`Image generation failed: ${errorData.error}`);
-      }
-    } catch {
-      setError("Failed to generate images");
-    } finally {
-      setIsGeneratingImages(false);
-    }
-  };
-
-  const downloadImage = async (imageUrl: string, index: number) => {
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `generated-image-${index + 1}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch {
-      setError("Failed to download image");
-    }
   };
 
   const copyToClipboard = async (text: string) => {
@@ -429,86 +378,10 @@ export function TikTokForm() {
               </div>
             )}
 
-            {/* Image Generation Section */}
-            {jobStatus.openai_script && jobStatus.openai_script.trim() && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Images className="h-4 w-4 text-purple-500" />
-                    <span className="text-sm font-medium">
-                      AI Generated Images
-                    </span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={generateImages}
-                    disabled={isGeneratingImages}
-                    className="h-8"
-                  >
-                    {isGeneratingImages && (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    )}
-                    {isGeneratingImages ? "Generating..." : "Generate Images"}
-                  </Button>
-                </div>
-
-                {generatedImages.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    {generatedImages.map((image, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="relative aspect-[9/16] bg-muted rounded-md overflow-hidden">
-                          <img
-                            src={image.url}
-                            alt={`Generated image ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {image.prompt}
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => downloadImage(image.url, index)}
-                          className="w-full"
-                        >
-                          <Download className="h-3 w-3 mr-1" />
-                          Download
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
             {jobStatus.status === "error" && jobStatus.error_message && (
               <Alert variant="destructive">
                 <XCircle className="h-4 w-4" />
                 <AlertDescription>{jobStatus.error_message}</AlertDescription>
-              </Alert>
-            )}
-
-            {jobStatus.status === "scheduled_to_socialbee" && (
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Your content has been processed and scheduled! The
-                  AI-generated script and video are ready for multi-platform
-                  posting.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {jobStatus.status === "script_generated" && (
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>
-                  AI script generated successfully! Your content is ready for
-                  video creation. Check the dashboard to view the generated
-                  script.
-                </AlertDescription>
               </Alert>
             )}
           </CardContent>
