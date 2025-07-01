@@ -113,11 +113,6 @@ async function updateJobWithGeneratedContent(
   jobId: string,
   content: GeneratedContent
 ) {
-  console.log("💾 Updating job with generated content:", {
-    jobId,
-    content: JSON.stringify(content, null, 2),
-  });
-
   const { error } = await supabase
     .from("jobs")
     .update({
@@ -134,8 +129,6 @@ async function updateJobWithGeneratedContent(
   if (error) {
     throw new Error(`Failed to update job: ${error.message}`);
   }
-
-  console.log("✅ Job updated successfully in database");
 }
 
 export async function POST(request: NextRequest) {
@@ -151,8 +144,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log(`Starting script generation for job: ${jobId}`);
 
     // Get job details
     const { data: job, error: fetchError } = await supabase
@@ -202,8 +193,6 @@ export async function POST(request: NextRequest) {
     // Update job with generated content
     await updateJobWithGeneratedContent(jobId, generatedContent);
 
-    console.log(`Script generation completed for job: ${jobId}`);
-
     const responseContent = {
       success: true,
       message: "Script generated successfully",
@@ -215,11 +204,6 @@ export async function POST(request: NextRequest) {
         hashtags: generatedContent.hashtags,
       },
     };
-
-    console.log(
-      "📤 API Response Content:",
-      JSON.stringify(responseContent, null, 2)
-    );
 
     return NextResponse.json(responseContent);
   } catch (error) {

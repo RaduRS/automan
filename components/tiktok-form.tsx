@@ -7,14 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Loader2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Copy,
-  FileText,
-} from "lucide-react";
+import { useSceneReset } from "@/contexts/SceneResetContext";
+import { Loader2, XCircle, FileText } from "lucide-react";
 
 interface JobStatus {
   id: string;
@@ -46,18 +40,13 @@ const STATUS_STEPS = [
     label: "Transcription Complete",
     progress: 50,
   },
-  { key: "generating_script", label: "Generating Script", progress: 60 },
-  { key: "script_generated", label: "Script Ready", progress: 70 },
-  { key: "generating_video", label: "Creating Video", progress: 80 },
-  { key: "video_ready", label: "Video Ready", progress: 90 },
-  {
-    key: "scheduled_to_socialbee",
-    label: "Scheduled to SocialBee",
-    progress: 100,
-  },
+  { key: "generating_script", label: "Generating Script", progress: 80 },
+  { key: "script_generated", label: "Script Ready", progress: 100 },
 ];
 
 export function TikTokForm() {
+  const { resetSceneData } = useSceneReset();
+
   const [urls, setUrls] = useState({
     url1: "",
     url2: "",
@@ -66,7 +55,6 @@ export function TikTokForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +67,9 @@ export function TikTokForm() {
     setIsSubmitting(true);
     setError(null);
     setJobStatus(null);
+
+    // Reset all scene manager data when submitting a new job
+    resetSceneData();
 
     try {
       const response = await fetch("/api/submit", {
@@ -127,10 +118,8 @@ export function TikTokForm() {
 
           // Stop polling if job is complete or failed
           if (
-            status.status === "scheduled_to_socialbee" ||
-            status.status === "error" ||
-            status.status === "video_ready" ||
-            status.status === "script_generated"
+            status.status === "script_generated" ||
+            status.status === "error"
           ) {
             clearInterval(pollInterval);
           }
@@ -152,46 +141,11 @@ export function TikTokForm() {
     );
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "scheduled_to_socialbee":
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case "error":
-        return <XCircle className="h-5 w-5 text-red-500" />;
-      default:
-        return <Clock className="h-5 w-5 text-blue-500" />;
-    }
-  };
-
   const handleReset = () => {
     setUrls({ url1: "", url2: "", url3: "" });
     setJobStatus(null);
     setError(null);
     setIsSubmitting(false);
-    setIsCopied(false);
-  };
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
-    } catch {
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      try {
-        document.execCommand("copy");
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
-      } catch {
-        // Silent failure
-      }
-      document.body.removeChild(textArea);
-    }
   };
 
   return (
@@ -279,27 +233,16 @@ export function TikTokForm() {
       {/* Job Status Display */}
       {jobStatus && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {getStatusIcon(jobStatus.status)}
-              Job Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">
-                Job ID: {jobStatus.id}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                Status: {jobStatus.status.replace("_", " ").toUpperCase()}
-              </span>
-            </div>
-
+          <CardContent className="pt-6">
             {getCurrentStep() && (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">{getCurrentStep()!.label}</span>
-                  <span className="text-sm">{getCurrentStep()!.progress}%</span>
+                  <span className="text-sm font-medium">
+                    {getCurrentStep()!.label}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {getCurrentStep()!.progress}%
+                  </span>
                 </div>
                 <Progress
                   value={getCurrentStep()!.progress}
@@ -308,31 +251,13 @@ export function TikTokForm() {
               </div>
             )}
 
-            {/* AI Script Display */}
+            {/* Content Display - Only show when script is generated */}
             {jobStatus.openai_script && jobStatus.openai_script.trim() && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-green-500" />
-                    <span className="text-sm font-medium">
-                      Generated Content
-                    </span>
-                  </div>
-                  <Button
-                    variant={isCopied ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => copyToClipboard(jobStatus.openai_script!)}
-                    className="h-8"
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    {isCopied ? "Copied!" : "Copy Script"}
-                  </Button>
-                </div>
-
+              <div className="space-y-4 mt-6">
                 {/* Title Display */}
                 {jobStatus.job_title && jobStatus.job_title.trim() && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                    <div className="text-xs text-blue-600 font-medium mb-1">
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <div className="text-xs text-blue-600 font-medium mb-2">
                       TITLE
                     </div>
                     <div className="text-sm font-semibold text-blue-900">
@@ -344,8 +269,8 @@ export function TikTokForm() {
                 {/* Description Display */}
                 {jobStatus.job_description &&
                   jobStatus.job_description.trim() && (
-                    <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                      <div className="text-xs text-green-600 font-medium mb-1">
+                    <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                      <div className="text-xs text-green-600 font-medium mb-2">
                         DESCRIPTION
                       </div>
                       <div className="text-sm text-green-900">
@@ -354,20 +279,8 @@ export function TikTokForm() {
                     </div>
                   )}
 
-                {/* Hashtags Display */}
-                {jobStatus.job_hashtags && jobStatus.job_hashtags.trim() && (
-                  <div className="bg-purple-50 border border-purple-200 rounded-md p-3">
-                    <div className="text-xs text-purple-600 font-medium mb-1">
-                      HASHTAGS
-                    </div>
-                    <div className="text-sm font-mono text-purple-900">
-                      {jobStatus.job_hashtags}
-                    </div>
-                  </div>
-                )}
-
                 {/* Script Display */}
-                <div className="bg-muted/50 rounded-md p-3 max-h-48 overflow-y-auto">
+                <div className="bg-muted/50 rounded-md p-4 max-h-48 overflow-y-auto">
                   <div className="text-xs text-muted-foreground font-medium mb-2">
                     SCRIPT
                   </div>
@@ -375,11 +288,25 @@ export function TikTokForm() {
                     {jobStatus.openai_script}
                   </pre>
                 </div>
+
+                {/* Go to Scene Manager Button - Show when script is complete */}
+                {jobStatus.status === "script_generated" && (
+                  <div className="pt-4">
+                    <Button
+                      onClick={() => (window.location.href = "/scene-manager")}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Go to Scene Manager
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
             {jobStatus.status === "error" && jobStatus.error_message && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="mt-4">
                 <XCircle className="h-4 w-4" />
                 <AlertDescription>{jobStatus.error_message}</AlertDescription>
               </Alert>

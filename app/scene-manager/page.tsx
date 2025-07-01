@@ -272,6 +272,7 @@ interface SceneData {
 }
 
 interface ScriptData {
+  jobId: string;
   title: string;
   script: string;
   scenes: string[];
@@ -293,6 +294,14 @@ export default function SceneManagerPage() {
   );
   const [sceneDurations, setSceneDurations] = useState<number[]>([]);
 
+  // State for editing scenes
+  const [editingSceneId, setEditingSceneId] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+  const [staleAudioAlert, setStaleAudioAlert] = useState(false);
+  const [regeneratingSceneId, setRegeneratingSceneId] = useState<number | null>(
+    null
+  );
+
   // Continuous audio with precise timing
   const [continuousAudio, setContinuousAudio] = useState<{
     audioUrl: string;
@@ -311,6 +320,18 @@ export default function SceneManagerPage() {
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRefs = useRef<{ [key: number]: ReactPlayer | null }>({});
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Auto-resize textarea when editing starts
+  useEffect(() => {
+    if (editingSceneId && textareaRef.current) {
+      const textarea = textareaRef.current;
+      setTimeout(() => {
+        textarea.style.height = "auto";
+        textarea.style.height = textarea.scrollHeight + "px";
+      }, 0);
+    }
+  }, [editingSceneId, editText]);
 
   // Function to handle audio playback - stops all others and plays the selected one
   const handleAudioPlay = (sceneId: number) => {
@@ -445,7 +466,7 @@ export default function SceneManagerPage() {
 
   useEffect(() => {
     fetchLatestScript();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Calculate scene durations when scenes with audio are updated
   useEffect(() => {
@@ -534,6 +555,40 @@ export default function SceneManagerPage() {
     }
   };
 
+  // Functions to manage stale audio state persistence
+  const getStaleAudioStorageKey = (scriptHash: string) => {
+    return `automan_stale_audio_${scriptHash}`;
+  };
+
+  const saveStaleAudioState = (scriptHash: string, isStale: boolean) => {
+    try {
+      localStorage.setItem(
+        getStaleAudioStorageKey(scriptHash),
+        JSON.stringify(isStale)
+      );
+    } catch (error) {
+      console.error("Failed to save stale audio state:", error);
+    }
+  };
+
+  const loadStaleAudioState = (scriptHash: string): boolean => {
+    try {
+      const stored = localStorage.getItem(getStaleAudioStorageKey(scriptHash));
+      return stored ? JSON.parse(stored) : false;
+    } catch (error) {
+      console.error("Failed to load stale audio state:", error);
+      return false;
+    }
+  };
+
+  const clearStaleAudioState = (scriptHash: string) => {
+    try {
+      localStorage.removeItem(getStaleAudioStorageKey(scriptHash));
+    } catch (error) {
+      console.error("Failed to clear stale audio state:", error);
+    }
+  };
+
   const loadScenesFromStorage = (
     scriptHash: string
   ): Partial<SceneData>[] | null => {
@@ -575,7 +630,51 @@ export default function SceneManagerPage() {
         return;
       }
 
+      // Check if this is a completely new script (different jobId, not just script content)
+      // Only consider it a new script if we already had script data and the jobId is different
+      const isNewScript = scriptData?.jobId && scriptData.jobId !== data.jobId;
+
+      // Only reset if we have a completely new jobId (new generation from TikTok form)
+      if (isNewScript) {
+        console.log(
+          "🔄 New script jobId detected, resetting all scene manager state"
+        );
+
+        // Clear all localStorage for all scripts (since we have a new generation)
+        Object.keys(localStorage).forEach((key) => {
+          if (
+            key.startsWith("automan_scenes_") ||
+            key.startsWith("automan_stale_audio_")
+          ) {
+            localStorage.removeItem(key);
+          }
+        });
+
+        // Clear continuous audio
+        setContinuousAudio(null);
+        localStorage.removeItem("continuousAudioData");
+
+        // Reset UI state
+        setStaleAudioAlert(false);
+        setCurrentlyPlaying(null);
+        setIsPlaying(false);
+        setEditingSceneId(null);
+        setEditText("");
+        setSelectedImageUrl(null);
+        setSelectedImageScene(null);
+        setRegeneratingSceneId(null);
+
+        // Stop any currently playing audio
+        Object.values(audioRefs.current).forEach((player) => {
+          if (player) {
+            player.getInternalPlayer()?.pause?.();
+          }
+        });
+        audioRefs.current = {};
+      }
+
       setScriptData({
+        jobId: data.jobId,
         title: data.title || "Generated Script",
         script: data.script,
         scenes: scenes,
@@ -586,8 +685,10 @@ export default function SceneManagerPage() {
       // Create hash for this script to use as storage key
       const scriptHash = hashScript(data.script);
 
-      // Try to load existing scene data from localStorage
-      const storedScenes = loadScenesFromStorage(scriptHash);
+      // Try to load existing scene data from localStorage (unless it's a brand new script)
+      const storedScenes = !isNewScript
+        ? loadScenesFromStorage(scriptHash)
+        : null;
 
       // Initialize scenes with IDs and generation states
       const scenesWithIds = scenes.map((text: string, index: number) => {
@@ -598,14 +699,16 @@ export default function SceneManagerPage() {
           isGeneratingImage: false,
         };
 
-        // If we have stored data for this scene, restore it
-        const storedScene = storedScenes?.find((s) => s.id === index + 1);
-        if (storedScene) {
-          return {
-            ...baseScene,
-            voiceUrl: storedScene.voiceUrl,
-            imageUrl: storedScene.imageUrl,
-          };
+        // If we have stored data for this scene and it's not a new script, restore it
+        if (!isNewScript) {
+          const storedScene = storedScenes?.find((s) => s.id === index + 1);
+          if (storedScene) {
+            return {
+              ...baseScene,
+              voiceUrl: storedScene.voiceUrl,
+              imageUrl: storedScene.imageUrl,
+            };
+          }
         }
 
         return baseScene;
@@ -613,47 +716,53 @@ export default function SceneManagerPage() {
 
       setScenes(scenesWithIds);
 
-      // Clean up old localStorage data and load continuous audio data
-      try {
-        // Remove old continuous audio timing data (was storing base64)
-        localStorage.removeItem("continuousAudioTimings");
+      // Only load continuous audio data if not a new script
+      if (!isNewScript) {
+        try {
+          // Remove old continuous audio timing data (was storing base64)
+          localStorage.removeItem("continuousAudioTimings");
 
-        const storedAudioData = localStorage.getItem("continuousAudioData");
-        if (storedAudioData) {
-          const audioData = JSON.parse(storedAudioData);
-          // Verify the audio URL is a Cloudinary URL and has required data
-          if (
-            audioData.audioUrl &&
-            audioData.audioUrl.includes("cloudinary.com") &&
-            audioData.sceneTimings &&
-            audioData.totalDuration
-          ) {
-            setContinuousAudio(audioData);
-          } else {
-            // Clean up invalid data
-            localStorage.removeItem("continuousAudioData");
+          const storedAudioData = localStorage.getItem("continuousAudioData");
+          if (storedAudioData) {
+            const audioData = JSON.parse(storedAudioData);
+            // Verify the audio URL is a Cloudinary URL and has required data
+            if (
+              audioData.audioUrl &&
+              audioData.audioUrl.includes("cloudinary.com") &&
+              audioData.sceneTimings &&
+              audioData.totalDuration
+            ) {
+              setContinuousAudio(audioData);
+            } else {
+              // Clean up invalid data
+              localStorage.removeItem("continuousAudioData");
+            }
           }
+        } catch (error) {
+          console.error(
+            "Failed to load continuous audio from localStorage:",
+            error
+          );
+          // Clean up on error
+          localStorage.removeItem("continuousAudioData");
         }
-      } catch (error) {
-        console.error(
-          "Failed to load continuous audio from localStorage:",
-          error
-        );
-        // Clean up on error
-        localStorage.removeItem("continuousAudioData");
-      }
 
-      // Show restoration message if we loaded existing content
-      const restoredVoices = scenesWithIds.filter(
-        (s: SceneData) => s.voiceUrl
-      ).length;
-      const restoredImages = scenesWithIds.filter(
-        (s: SceneData) => s.imageUrl
-      ).length;
-      if (restoredVoices > 0 || restoredImages > 0) {
-        console.log(
-          `✅ Restored ${restoredVoices} voices and ${restoredImages} images from previous session`
-        );
+        // Restore stale audio state (only if not a new script)
+        const storedStaleAudioState = loadStaleAudioState(scriptHash);
+        setStaleAudioAlert(storedStaleAudioState);
+
+        // Show restoration message if we loaded existing content
+        const restoredVoices = scenesWithIds.filter(
+          (s: SceneData) => s.voiceUrl
+        ).length;
+        const restoredImages = scenesWithIds.filter(
+          (s: SceneData) => s.imageUrl
+        ).length;
+        if (restoredVoices > 0 || restoredImages > 0) {
+          console.log(
+            `✅ Restored ${restoredVoices} voices and ${restoredImages} images from previous session`
+          );
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load script");
@@ -811,6 +920,11 @@ export default function SceneManagerPage() {
           totalDuration: data.totalDuration,
         };
         localStorage.setItem("continuousAudioData", JSON.stringify(audioData));
+
+        // Clear stale audio alert since we have fresh audio
+        setStaleAudioAlert(false);
+        const scriptHash = hashScript(scriptData.script);
+        clearStaleAudioState(scriptHash);
       } else {
         console.error("Failed to generate continuous audio");
         setError("Failed to generate continuous audio with scene timings");
@@ -914,6 +1028,169 @@ export default function SceneManagerPage() {
     localStorage.removeItem("continuousAudioData");
   };
 
+  // Functions for editing scene text
+  const startEditingScene = (sceneId: number, currentText: string) => {
+    setEditingSceneId(sceneId);
+    setEditText(currentText);
+  };
+
+  const cancelEditing = () => {
+    setEditingSceneId(null);
+    setEditText("");
+  };
+
+  const saveSceneText = async (sceneId: number) => {
+    try {
+      const response = await fetch("/api/update-scene", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sceneId: sceneId,
+          text: editText,
+          jobId: scriptData?.jobId,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Update local state
+        setScenes((prev) =>
+          prev.map((scene) =>
+            scene.id === sceneId ? { ...scene, text: editText } : scene
+          )
+        );
+
+        // Update scriptData with new full script if returned
+        if (data.updatedFullScript && scriptData) {
+          setScriptData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  script: data.updatedFullScript,
+                }
+              : null
+          );
+        }
+
+        // Show stale audio alert and save to localStorage with correct hash
+        setStaleAudioAlert(true);
+        if (scriptData) {
+          const newScriptHash = data.updatedFullScript
+            ? hashScript(data.updatedFullScript)
+            : hashScript(scriptData.script);
+          console.log(`💾 Saving stale audio state for hash: ${newScriptHash}`);
+          saveStaleAudioState(newScriptHash, true);
+        }
+
+        // Cancel editing
+        setEditingSceneId(null);
+        setEditText("");
+      } else {
+        setError("Failed to save scene text");
+      }
+    } catch (error) {
+      console.error("Error saving scene text:", error);
+      setError("Failed to save scene text");
+    }
+  };
+
+  const regenerateSceneText = async (sceneId: number) => {
+    if (!scriptData) return;
+
+    console.log(`🔄 Starting regeneration for scene ${sceneId}`);
+    setRegeneratingSceneId(sceneId);
+
+    try {
+      const currentScene = scenes.find((scene) => scene.id === sceneId);
+      if (!currentScene) {
+        console.error(`❌ Scene ${sceneId} not found`);
+        setError("Scene not found");
+        return;
+      }
+
+      console.log(
+        `📝 Regenerating text: "${currentScene.text.substring(0, 50)}..."`
+      );
+
+      const requestBody = {
+        sceneId: sceneId,
+        currentText: currentScene.text,
+        fullScript: scriptData.script,
+        jobId: scriptData.jobId,
+      };
+
+      console.log(`🚀 Sending request:`, requestBody);
+
+      const response = await fetch("/api/regenerate-scene-text", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log(`📡 Response status: ${response.status}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`✅ Regeneration successful:`, data);
+
+        // Update local scene state with regenerated text
+        setScenes((prev) =>
+          prev.map((scene) =>
+            scene.id === sceneId
+              ? { ...scene, text: data.regeneratedText }
+              : scene
+          )
+        );
+
+        // Update scriptData with new full script
+        setScriptData((prev) =>
+          prev
+            ? {
+                ...prev,
+                script: data.updatedFullScript,
+              }
+            : null
+        );
+
+        // Show stale audio alert since text changed and save to localStorage
+        setStaleAudioAlert(true);
+        if (scriptData) {
+          const newScriptHash = hashScript(data.updatedFullScript);
+          saveStaleAudioState(newScriptHash, true);
+        }
+
+        // Clear any previous errors
+        setError(null);
+      } else {
+        const errorText = await response.text();
+        console.error(`❌ API error response:`, errorText);
+
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: `HTTP ${response.status}: ${errorText}` };
+        }
+
+        setError(
+          errorData.error ||
+            `Failed to regenerate scene text (${response.status})`
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error regenerating scene text:", error);
+      setError("Failed to regenerate scene text. Please try again.");
+    } finally {
+      console.log(`🏁 Regeneration finished for scene ${sceneId}`);
+      setRegeneratingSceneId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -985,6 +1262,7 @@ export default function SceneManagerPage() {
                     {isGeneratingAllImages && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
+                    {/* eslint-disable-next-line jsx-a11y/alt-text */}
                     <Image className="mr-2 h-4 w-4" />
                     {allImagesGenerated
                       ? "All Images Generated"
@@ -1059,6 +1337,37 @@ export default function SceneManagerPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Stale Audio Alert - positioned under audio player, only show if audio exists */}
+                {staleAudioAlert &&
+                  (continuousAudio ||
+                    scenes.some((scene) => scene.voiceUrl)) && (
+                    <div className="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-3 mb-3 rounded">
+                      <div className="flex justify-between items-center">
+                        <div className="flex">
+                          <div>
+                            <p className="text-sm">
+                              <strong>Audio may be out of sync!</strong> You
+                              have edited scene text. The audio was generated
+                              from the original text and may no longer match.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setStaleAudioAlert(false);
+                            if (scriptData) {
+                              const scriptHash = hashScript(scriptData.script);
+                              saveStaleAudioState(scriptHash, false);
+                            }
+                          }}
+                          className="text-orange-500 hover:text-orange-700 ml-2"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  )}
               </CardContent>
             </Card>
 
@@ -1149,9 +1458,78 @@ export default function SceneManagerPage() {
 
                       {/* Right: Text - 60% */}
                       <div className="w-3/5">
-                        <p className="text-sm bg-muted/30 py-2 px-2 rounded-lg leading-relaxed h-full">
-                          {scene.text}
-                        </p>
+                        {editingSceneId === scene.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              ref={textareaRef}
+                              value={editText}
+                              onChange={(e) => setEditText(e.target.value)}
+                              className="w-full text-sm bg-muted/30 py-2 px-2 rounded-lg leading-relaxed resize-none border border-gray-300 focus:border-blue-500 focus:outline-none"
+                              placeholder="Edit scene text..."
+                              style={{
+                                minHeight: "80px",
+                                height: "auto",
+                                overflowY: "hidden",
+                              }}
+                              onInput={(e) => {
+                                const target = e.target as HTMLTextAreaElement;
+                                target.style.height = "auto";
+                                target.style.height =
+                                  target.scrollHeight + "px";
+                              }}
+                            />
+                            <div className="flex gap-1">
+                              <Button
+                                onClick={() => saveSceneText(scene.id)}
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                onClick={cancelEditing}
+                                variant="outline"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <p
+                              className="text-sm bg-muted/30 py-2 px-2 rounded-lg leading-relaxed cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() =>
+                                startEditingScene(scene.id, scene.text)
+                              }
+                              title="Click to edit"
+                            >
+                              {scene.text}
+                            </p>
+
+                            {/* Regenerate button */}
+                            <Button
+                              onClick={() => regenerateSceneText(scene.id)}
+                              disabled={regeneratingSceneId === scene.id}
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-3 text-xs"
+                            >
+                              {regeneratingSceneId === scene.id ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                  Regenerating...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="h-3 w-3 mr-1" />
+                                  Regenerate
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
