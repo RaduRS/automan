@@ -66,11 +66,6 @@ Now, apply this process for the sentence: "${sentence}".`,
 
 async function generateImage(prompt: string): Promise<string> {
   try {
-    console.log(
-      "Calling Nebius API with prompt:",
-      prompt.substring(0, 100) + "..."
-    );
-
     const response = await fetch(
       "https://api.studio.nebius.ai/v1/images/generations",
       {
@@ -101,7 +96,6 @@ async function generateImage(prompt: string): Promise<string> {
     }
 
     const data = await response.json();
-    console.log("Nebius API response received with base64 data");
 
     if (data.data && data.data[0] && data.data[0].b64_json) {
       // Create unique filename (without extension, Cloudinary will add it)
@@ -140,7 +134,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Generating image for sentence: "${sentence}"`);
     if (scriptContext) {
       console.log(
         `Using script context: "${scriptContext.substring(0, 100)}..."`
@@ -148,17 +141,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 1: Generate image prompt using OpenAI gpt-4o-mini
-    console.log("Generating image prompt with OpenAI gpt-4o-mini...");
     const imagePrompt = await generateImagePrompt(
       sentence.trim(),
       scriptContext?.trim()
     );
-    console.log("Generated prompt:", imagePrompt);
-
-    // Step 2: Generate image using Nebius
-    console.log("Generating image with Nebius...");
     const imageUrl = await generateImage(imagePrompt);
-    console.log("Generated image URL:", imageUrl);
 
     // Store the generated image in database (without cost tracking)
     const { data: dbData, error: dbError } = await supabase

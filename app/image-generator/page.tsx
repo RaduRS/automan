@@ -218,14 +218,69 @@ export default function ImageGeneratorPage() {
     try {
       const response = await fetch(generatedImage.url);
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `motivational-image-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+
+      // Always convert to PNG to ensure proper metadata and previews
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+
+      await new Promise((resolve, reject) => {
+        img.onload = () => {
+          // Set canvas dimensions to match the image
+          canvas.width = img.width;
+          canvas.height = img.height;
+
+          // Fill with white background to ensure opaque PNG
+          if (ctx) {
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+          }
+
+          // Convert to PNG blob with maximum quality
+          canvas.toBlob(
+            (pngBlob) => {
+              if (pngBlob) {
+                // Create a proper PNG file with metadata
+                const fileName = `motivational-image-${Date.now()}.png`;
+
+                // Use the File constructor to create a proper file with metadata
+                const file = new File([pngBlob], fileName, {
+                  type: "image/png",
+                  lastModified: Date.now(),
+                });
+
+                // Create download link
+                const url = window.URL.createObjectURL(file);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = fileName;
+                link.style.display = "none";
+
+                // Add to DOM, click, then remove
+                document.body.appendChild(link);
+                link.click();
+
+                // Clean up after a short delay to ensure download starts
+                setTimeout(() => {
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(url);
+                }, 100);
+
+                resolve(undefined);
+              } else {
+                reject(new Error("Failed to create PNG"));
+              }
+            },
+            "image/png",
+            1.0
+          ); // Maximum quality
+        };
+
+        img.onerror = reject;
+        img.crossOrigin = "anonymous"; // Handle CORS if needed
+        img.src = window.URL.createObjectURL(blob);
+      });
 
       // Mark as downloaded in database if we have the ID
       if (generatedImage.id) {
@@ -240,7 +295,8 @@ export default function ImageGeneratorPage() {
         // Refresh gallery to show downloaded status
         fetchGallery(currentPage);
       }
-    } catch {
+    } catch (error) {
+      console.error("Download error:", error);
       setError("Failed to download image");
     }
   };
@@ -255,17 +311,71 @@ export default function ImageGeneratorPage() {
 
   const downloadGalleryImage = async (imageUrl: string, imageId: string) => {
     try {
-      // Download the image
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `motivational-image-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+
+      // Always convert to PNG to ensure proper metadata and previews
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+
+      await new Promise((resolve, reject) => {
+        img.onload = () => {
+          // Set canvas dimensions to match the image
+          canvas.width = img.width;
+          canvas.height = img.height;
+
+          // Fill with white background to ensure opaque PNG
+          if (ctx) {
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+          }
+
+          // Convert to PNG blob with maximum quality
+          canvas.toBlob(
+            (pngBlob) => {
+              if (pngBlob) {
+                // Create a proper PNG file with metadata
+                const fileName = `motivational-image-${Date.now()}.png`;
+
+                // Use the File constructor to create a proper file with metadata
+                const file = new File([pngBlob], fileName, {
+                  type: "image/png",
+                  lastModified: Date.now(),
+                });
+
+                // Create download link
+                const url = window.URL.createObjectURL(file);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = fileName;
+                link.style.display = "none";
+
+                // Add to DOM, click, then remove
+                document.body.appendChild(link);
+                link.click();
+
+                // Clean up after a short delay to ensure download starts
+                setTimeout(() => {
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(url);
+                }, 100);
+
+                resolve(undefined);
+              } else {
+                reject(new Error("Failed to create PNG"));
+              }
+            },
+            "image/png",
+            1.0
+          ); // Maximum quality
+        };
+
+        img.onerror = reject;
+        img.crossOrigin = "anonymous"; // Handle CORS if needed
+        img.src = window.URL.createObjectURL(blob);
+      });
 
       // Mark as downloaded in database
       await fetch("/api/mark-downloaded", {
@@ -278,7 +388,8 @@ export default function ImageGeneratorPage() {
 
       // Refresh gallery to show downloaded status
       fetchGallery(currentPage);
-    } catch {
+    } catch (error) {
+      console.error("Gallery download error:", error);
       setError("Failed to download image");
     }
   };

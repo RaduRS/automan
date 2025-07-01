@@ -10,11 +10,6 @@ interface ImageResult {
 
 async function generateImage(prompt: string): Promise<string> {
   try {
-    console.log(
-      "Calling Nebius API with prompt:",
-      prompt.substring(0, 100) + "..."
-    );
-
     const response = await fetch(
       "https://api.studio.nebius.ai/v1/images/generations",
       {
@@ -45,7 +40,6 @@ async function generateImage(prompt: string): Promise<string> {
     }
 
     const data = await response.json();
-    console.log("Nebius API response received with base64 data");
 
     if (data.data && data.data[0] && data.data[0].b64_json) {
       // Create unique filename (without extension, Cloudinary will add it)
@@ -84,17 +78,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(
-      `Regenerating image with existing prompt: "${prompt.substring(
-        0,
-        100
-      )}..."`
-    );
-
     // Generate image using the existing prompt (skip OpenAI)
-    console.log("Regenerating image with Nebius...");
     const imageUrl = await generateImage(prompt.trim());
-    console.log("Regenerated image URL:", imageUrl);
 
     // Store the regenerated image in database (without cost tracking)
     const { data: dbData, error: dbError } = await supabase

@@ -43,11 +43,6 @@ export async function uploadImageToCloudinary(
           .end(buffer);
       }
     );
-
-    console.log(
-      "Successfully uploaded to Cloudinary:",
-      uploadResult.secure_url
-    );
     return uploadResult.secure_url;
   } catch (error) {
     console.error("Error uploading to Cloudinary:", error);
