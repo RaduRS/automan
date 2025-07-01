@@ -133,6 +133,18 @@ export default function PlatformOptimizer() {
   };
 
   const platformConfigs = {
+    facebook: {
+      name: "Facebook Reels",
+      color: "bg-blue-600",
+      strategy: "3-5 highly relevant hashtags",
+      format: "Facebook Reel",
+    },
+    twitter: {
+      name: "X (Twitter)",
+      color: "bg-black",
+      strategy: "1-3 topical hashtags only",
+      format: "Video Post",
+    },
     youtube: {
       name: "YouTube Shorts",
       color: "bg-red-500",
@@ -145,24 +157,48 @@ export default function PlatformOptimizer() {
       strategy: "5-15 hashtags: format + niche mix",
       format: "Instagram Reel",
     },
-    facebook: {
-      name: "Facebook Reels",
-      color: "bg-blue-600",
-      strategy: "3-5 highly relevant hashtags",
-      format: "Facebook Reel",
-    },
     tiktok: {
       name: "TikTok",
       color: "bg-black",
       strategy: "Your current successful mix",
       format: "TikTok Video",
     },
-    twitter: {
-      name: "X (Twitter)",
-      color: "bg-black",
-      strategy: "1-3 topical hashtags only",
-      format: "Video Post",
-    },
+  };
+
+  // Platform-specific promotional content optimized for each platform
+  const getPromotionalContent = (platform: string) => {
+    const promoContent = {
+      facebook: {
+        title: "FIRST COMMENT PROMO",
+        content:
+          "🧠 This mental weapon changed everything for me!\nThe complete collection: 100 Mental Weapons [eBook + Audiobook]\n📖 https://100mentalweapons.gumroad.com/l/ebookandaudiobook\n🎁 Save 25% with SUMMER25 (limited time!)\n\nTag someone who needs this mindset shift! 👇",
+      },
+      twitter: {
+        title: "FIRST COMMENT PROMO",
+        content:
+          "🧠 This is 1 of 100 Mental Weapons that transformed my mindset\n\n📖 Complete Arsenal: eBook + Audiobook\n🔗 https://100mentalweapons.gumroad.com/l/ebookandaudiobook\n⚡ 25% OFF: SUMMER25\n\n#MentalWeapons #Mindset #SelfImprovement",
+      },
+      youtube: {
+        title: "FIRST COMMENT PROMO",
+        content:
+          "🔥 LOVED this mental weapon? Get all 100!\n\n📚 100 Mental Weapons [Complete Arsenal]\n✅ eBook + Audiobook Bundle\n🎯 https://100mentalweapons.gumroad.com/l/ebookandaudiobook\n\n💥 25% OFF with code: SUMMER25\n\nWhich mental weapon do YOU need most? Comment below! 👇",
+      },
+      instagram: {
+        title: "FIRST COMMENT PROMO",
+        content:
+          "✨ This mental weapon hits different! \n\n🧠 Want all 100 Mental Weapons?\n📖 eBook + 🎧 Audiobook Bundle\n🔗 Link: https://100mentalweapons.gumroad.com/l/ebookandaudiobook\n\n🎁 Save 25% → SUMMER25 ⏰\n\nDouble tap if you're ready to level up! 💪✨",
+      },
+      tiktok: {
+        title: "FIRST COMMENT PROMO",
+        content:
+          "This is just 1 of 100 Mental Weapons 🧠\n\nGet the complete collection:\n100 Mental Weapons [eBook + Audiobook]\nhttps://100mentalweapons.gumroad.com/l/ebookandaudiobook\n\nUse SUMMER25 for 25% off 💥\n\nWhich mental weapon changed your life?",
+      },
+    };
+
+    return (
+      promoContent[platform as keyof typeof promoContent] ||
+      promoContent.facebook
+    );
   };
 
   return (
@@ -298,7 +334,7 @@ export default function PlatformOptimizer() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="youtube" className="w-full">
+              <Tabs defaultValue="facebook" className="w-full">
                 <TabsList className="grid w-full grid-cols-5">
                   {Object.entries(platformConfigs).map(([key, config]) => (
                     <TabsTrigger key={key} value={key} className="text-xs">
@@ -375,33 +411,105 @@ export default function PlatformOptimizer() {
                             </Card>
                           )}
 
-                          {/* Description and Hashtags - Side by Side */}
+                          {/* Complete Post and Promotional Content - Side by Side */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            {/* Description */}
+                            {/* Complete Post */}
+                            {platform === "youtube" ? (
+                              <Card
+                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                onClick={() =>
+                                  copyToClipboard(
+                                    `${content.title} #shorts\n\n${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`,
+                                    `${platform}-complete`
+                                  )
+                                }
+                              >
+                                <CardHeader className="pb-3">
+                                  <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                      COMPLETE POST
+                                    </CardTitle>
+                                    {copiedItems[`${platform}-complete`] ? (
+                                      <CheckCircle className="h-4 w-4 text-green-500" />
+                                    ) : (
+                                      <Copy className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                </CardHeader>
+                                <CardContent className="pt-0">
+                                  <div className="space-y-2 p-4 bg-muted rounded-md">
+                                    <p className="font-medium">
+                                      {content.title}
+                                    </p>
+                                    <p className="text-muted-foreground">
+                                      {content.description}
+                                    </p>
+                                    <p className="font-mono text-blue-600 text-sm">
+                                      {content.hashtags}
+                                    </p>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ) : (
+                              <Card
+                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                onClick={() =>
+                                  copyToClipboard(
+                                    `${content.description}\n${content.hashtags}`,
+                                    `${platform}-complete`
+                                  )
+                                }
+                              >
+                                <CardHeader className="pb-3">
+                                  <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                      COMPLETE POST
+                                    </CardTitle>
+                                    {copiedItems[`${platform}-complete`] ? (
+                                      <CheckCircle className="h-4 w-4 text-green-500" />
+                                    ) : (
+                                      <Copy className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                </CardHeader>
+                                <CardContent className="pt-0">
+                                  <div className="space-y-2 p-4 bg-muted rounded-md">
+                                    <p className="text-muted-foreground">
+                                      {content.description}
+                                    </p>
+                                    <p className="font-mono text-blue-600 text-sm">
+                                      {content.hashtags}
+                                    </p>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            )}
+
+                            {/* First Comment Promotional Content */}
                             <Card
                               className="cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() =>
+                              onClick={() => {
+                                const promoData =
+                                  getPromotionalContent(platform);
                                 copyToClipboard(
-                                  platform === "youtube"
-                                    ? `${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`
-                                    : content.description,
-                                  `${platform}-description`
-                                )
-                              }
+                                  promoData.content,
+                                  `${platform}-promo`
+                                );
+                              }}
                             >
                               <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
                                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                                    DESCRIPTION
+                                    {getPromotionalContent(platform).title}
                                   </CardTitle>
                                   <div className="flex items-center gap-2">
                                     <Badge
                                       variant="secondary"
                                       className="text-xs"
                                     >
-                                      {content.description.length} chars
+                                      First Comment
                                     </Badge>
-                                    {copiedItems[`${platform}-description`] ? (
+                                    {copiedItems[`${platform}-promo`] ? (
                                       <CheckCircle className="h-4 w-4 text-green-500" />
                                     ) : (
                                       <Copy className="h-4 w-4 text-muted-foreground" />
@@ -411,123 +519,56 @@ export default function PlatformOptimizer() {
                               </CardHeader>
                               <CardContent className="pt-0">
                                 <p className="text-base whitespace-pre-line">
-                                  {platform === "youtube"
-                                    ? `${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`
-                                    : content.description}
-                                </p>
-                              </CardContent>
-                            </Card>
-
-                            {/* Hashtags */}
-                            <Card
-                              className="cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() =>
-                                copyToClipboard(
-                                  content.hashtags,
-                                  `${platform}-hashtags`
-                                )
-                              }
-                            >
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                                    HASHTAGS
-                                  </CardTitle>
-                                  <div className="flex items-center gap-2">
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs"
-                                    >
-                                      {content.hashtags.split(" ").length} tags
-                                    </Badge>
-                                    {copiedItems[`${platform}-hashtags`] ? (
-                                      <CheckCircle className="h-4 w-4 text-green-500" />
-                                    ) : (
-                                      <Copy className="h-4 w-4 text-muted-foreground" />
-                                    )}
-                                  </div>
-                                </div>
-                              </CardHeader>
-                              <CardContent className="pt-0">
-                                <p className="text-base font-mono text-blue-600">
-                                  {content.hashtags}
+                                  {getPromotionalContent(platform).content}
                                 </p>
                               </CardContent>
                             </Card>
                           </div>
 
-                          {/* Complete Post - YouTube (with title) */}
-                          {platform === "youtube" && (
-                            <Card
-                              className="cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() =>
-                                copyToClipboard(
-                                  `${content.title} #shorts\n\n${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`,
-                                  `${platform}-complete`
-                                )
-                              }
-                            >
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                                    COMPLETE POST
-                                  </CardTitle>
-                                  {copiedItems[`${platform}-complete`] ? (
+                          {/* Description */}
+                          <Card
+                            className="cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() =>
+                              copyToClipboard(
+                                platform === "youtube"
+                                  ? `${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`
+                                  : content.description,
+                                `${platform}-description`
+                              )
+                            }
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">
+                                  DESCRIPTION
+                                </CardTitle>
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {platform === "youtube"
+                                      ? `${
+                                          content.description.length + 110
+                                        } chars`
+                                      : `${content.description.length} chars`}
+                                  </Badge>
+                                  {copiedItems[`${platform}-description`] ? (
                                     <CheckCircle className="h-4 w-4 text-green-500" />
                                   ) : (
                                     <Copy className="h-4 w-4 text-muted-foreground" />
                                   )}
                                 </div>
-                              </CardHeader>
-                              <CardContent className="pt-0">
-                                <div className="space-y-2 p-4 bg-muted rounded-md">
-                                  <p className="font-medium">{content.title}</p>
-                                  <p className="text-muted-foreground">
-                                    {content.description}
-                                  </p>
-                                  <p className="font-mono text-blue-600 text-sm">
-                                    {content.hashtags}
-                                  </p>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-
-                          {/* Complete Post - Other platforms (description + hashtags only) */}
-                          {platform !== "youtube" && (
-                            <Card
-                              className="cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() =>
-                                copyToClipboard(
-                                  `${content.description}\n${content.hashtags}`,
-                                  `${platform}-complete`
-                                )
-                              }
-                            >
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                                    COMPLETE POST
-                                  </CardTitle>
-                                  {copiedItems[`${platform}-complete`] ? (
-                                    <CheckCircle className="h-4 w-4 text-green-500" />
-                                  ) : (
-                                    <Copy className="h-4 w-4 text-muted-foreground" />
-                                  )}
-                                </div>
-                              </CardHeader>
-                              <CardContent className="pt-0">
-                                <div className="space-y-2 p-4 bg-muted rounded-md">
-                                  <p className="text-muted-foreground">
-                                    {content.description}
-                                  </p>
-                                  <p className="font-mono text-blue-600 text-sm">
-                                    {content.hashtags}
-                                  </p>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
+                              </div>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <p className="text-base whitespace-pre-line">
+                                {platform === "youtube"
+                                  ? `${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`
+                                  : content.description}
+                              </p>
+                            </CardContent>
+                          </Card>
                         </div>
                       </div>
                     </TabsContent>

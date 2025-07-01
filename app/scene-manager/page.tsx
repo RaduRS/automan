@@ -147,6 +147,72 @@ const MasterVideoComposition: React.FC<{
   const currentScene = scenes[currentSceneIndex];
   if (!currentScene) return null;
 
+  // Calculate scene progress for text highlighting
+  let sceneProgress = 0;
+
+  if (
+    continuousAudio &&
+    continuousAudio.sceneTimings.length === scenes.length
+  ) {
+    const timing = continuousAudio.sceneTimings[currentSceneIndex];
+    const timeInScene = currentTimeInSeconds - timing.startTime;
+    const sceneDuration = timing.endTime - timing.startTime;
+    sceneProgress = Math.min(Math.max(timeInScene / sceneDuration, 0), 1);
+  } else {
+    // Fallback to frame-based calculation
+    const sceneStartFrame = sceneStartTimes[currentSceneIndex] || 0;
+    const sceneDurationFrames = actualSceneDurations[currentSceneIndex] || 150;
+    const frameInScene = frame - sceneStartFrame;
+    sceneProgress = Math.min(
+      Math.max(frameInScene / sceneDurationFrames, 0),
+      1
+    );
+  }
+
+  // NEW: Calculate current visible text batch and word-by-word highlighting
+  const words = currentScene.text.split(" ");
+  const wordsPerBatch = 6; // Show 6 words per batch
+  const totalWords = words.length;
+
+  // Add a small time offset to make text highlighting slightly ahead of audio for better sync
+  const syncOffset = 0.1; // 100ms ahead - adjust this value to fine-tune sync
+  let adjustedSceneProgress = sceneProgress;
+
+  if (
+    continuousAudio &&
+    continuousAudio.sceneTimings.length === scenes.length
+  ) {
+    const timing = continuousAudio.sceneTimings[currentSceneIndex];
+    const sceneDuration = timing.endTime - timing.startTime;
+    const timeInScene = currentTimeInSeconds - timing.startTime;
+    const adjustedTimeInScene = timeInScene + syncOffset;
+    adjustedSceneProgress = Math.min(
+      Math.max(adjustedTimeInScene / sceneDuration, 0),
+      1
+    );
+  } else {
+    // For frame-based calculation, add equivalent frames (30fps * 0.1s = 3 frames)
+    const sceneStartFrame = sceneStartTimes[currentSceneIndex] || 0;
+    const sceneDurationFrames = actualSceneDurations[currentSceneIndex] || 150;
+    const frameInScene = frame - sceneStartFrame + 3; // Add 3 frames (0.1s at 30fps)
+    adjustedSceneProgress = Math.min(
+      Math.max(frameInScene / sceneDurationFrames, 0),
+      1
+    );
+  }
+
+  // Calculate which word we're currently on based on adjusted scene progress
+  const currentWordIndex = Math.floor(adjustedSceneProgress * totalWords);
+
+  // Calculate which batch we're in and the words for that batch
+  const currentBatchIndex = Math.floor(currentWordIndex / wordsPerBatch);
+  const batchStart = currentBatchIndex * wordsPerBatch;
+  const batchEnd = Math.min(batchStart + wordsPerBatch, totalWords);
+  const visibleWords = words.slice(batchStart, batchEnd);
+
+  // Calculate which words in the current batch should be highlighted
+  const wordsHighlightedInBatch = Math.max(0, currentWordIndex - batchStart);
+
   // We'll use global progress instead of individual scene progress for smooth movement
 
   // Smooth continuous pan that flows between scenes
@@ -238,6 +304,103 @@ const MasterVideoComposition: React.FC<{
         }}
         alt="Scene"
       />
+
+      {/* Text Overlay - Centered */}
+      <div
+        style={{
+          position: "absolute",
+          top: "60%",
+          left: "50%",
+          transform: "translate(-50%, -60%)",
+          width: "85%", // Reduced width to prevent cutoff
+          zIndex: 10,
+          textAlign: "center",
+          lineHeight: "1.3",
+          // Soft pink shadow for entire sentence container
+          filter:
+            "drop-shadow(0 4px 12px rgba(0,0,0,0.6)) drop-shadow(0 0 20px rgba(252,119,239,0.3))",
+        }}
+      >
+        {(() => {
+          // Convert to uppercase and break into lines (max 2 lines)
+          const upperCaseWords = visibleWords.map((word) => word.toUpperCase());
+
+          // HARD CLAMP to exactly 2 lines maximum
+          const lines: string[][] = [];
+
+          // Always force exactly 2 lines or less
+          if (upperCaseWords.length <= 3) {
+            // 3 or fewer words stay on one line
+            lines.push(upperCaseWords);
+          } else {
+            // Split into exactly 2 lines
+            const half = Math.ceil(upperCaseWords.length / 2);
+            lines.push(upperCaseWords.slice(0, half));
+            lines.push(upperCaseWords.slice(half));
+          }
+
+          // HARD LIMIT: Never allow more than 2 lines
+          lines.splice(2); // Remove any lines beyond index 1 (keeping only 0 and 1)
+
+          let wordsDrawnSoFar = 0;
+
+          return lines.map((lineWords, lineIndex) => (
+            <div
+              key={lineIndex}
+              style={{
+                marginBottom: lineIndex < lines.length - 1 ? "16px" : "0", // More space between lines
+              }}
+            >
+              {lineWords.map((word, wordIndex) => {
+                const globalWordIndex = wordsDrawnSoFar + wordIndex;
+
+                // Determine if this word should be highlighted
+                // Keep last word highlighted when audio finishes
+                const currentWordBeingSpoken = Math.floor(
+                  wordsHighlightedInBatch
+                );
+                const isLastWordWhenFinished =
+                  adjustedSceneProgress >= 0.95 &&
+                  globalWordIndex === totalWords - 1;
+                const isCurrentWord =
+                  globalWordIndex === currentWordBeingSpoken ||
+                  isLastWordWhenFinished;
+
+                // Update counter after processing
+                if (wordIndex === lineWords.length - 1) {
+                  wordsDrawnSoFar += lineWords.length;
+                }
+
+                return (
+                  <span
+                    key={`${batchStart + globalWordIndex}-${word}`}
+                    style={{
+                      fontSize: "68px", // Reduced font size to fit better in frame
+                      fontWeight: "950", // Maximum bold weight
+                      color: isCurrentWord ? "#FE78EE" : "#FFFFFF", // New pink color for current word, white for others
+                      display: "inline-block",
+                      margin: "0 18px 0 0", // Much more space between words for better readability
+                      transition: "transform 0.025s ease-out", // Lightning fast 25ms animation
+                      transform: isCurrentWord ? "scale(0.93)" : "scale(1)", // Very subtle shrink to 0.93 when highlighted
+                      fontFamily:
+                        "'Impact', 'Arial Black', 'Franklin Gothic Medium', sans-serif", // Even bolder font
+                      textTransform: "uppercase",
+                      WebkitTextStroke: "4px #000000", // Even thicker black outline
+                      letterSpacing: "0px", // Reset letter spacing for better readability
+                      transformOrigin: "center",
+                      // Additional properties for maximum boldness
+                      textShadow:
+                        "2px 2px 0px #000000, -2px -2px 0px #000000, 2px -2px 0px #000000, -2px 2px 0px #000000",
+                    }}
+                  >
+                    {word}
+                  </span>
+                );
+              })}
+            </div>
+          ));
+        })()}
+      </div>
 
       {/* Audio - use continuous audio with precise timings if available */}
       {continuousAudio &&

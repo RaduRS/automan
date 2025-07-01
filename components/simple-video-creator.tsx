@@ -89,9 +89,17 @@ export function SimpleVideoCreator({
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Could not get canvas context");
 
-      // Set TikTok dimensions
+      // Set TikTok dimensions with optimizations
       canvas.width = 1080;
       canvas.height = 1920;
+
+      // Optimize canvas for smooth animation
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+
+      // Enable hardware acceleration hints
+      canvas.style.willChange = "transform";
+      canvas.style.transform = "translateZ(0)"; // Force GPU acceleration
 
       // Check if MediaRecorder is supported
       if (!MediaRecorder.isTypeSupported("video/webm")) {
@@ -115,11 +123,11 @@ export function SimpleVideoCreator({
         ...audioDestination.stream.getAudioTracks(),
       ]);
 
-      // Try MP4 first for better TikTok compatibility with high-quality audio
+      // Optimized MediaRecorder settings for TikTok compatibility and smooth recording
       const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType: 'video/mp4; codecs="avc1.42E01E"', // H.264 baseline
-        videoBitsPerSecond: 2500000,
-        audioBitsPerSecond: 320000, // High-quality audio: 320kbps (CD quality)
+        mimeType: 'video/mp4; codecs="avc1.42E01E"', // H.264 baseline for TikTok compatibility
+        videoBitsPerSecond: 5000000, // Higher bitrate for smoother quality
+        audioBitsPerSecond: 128000, // Balanced audio quality
       });
 
       const chunks: Blob[] = [];
@@ -260,9 +268,9 @@ export function SimpleVideoCreator({
           }
         }, 300000); // 5 minutes safety timeout
 
-        // Start recording
+        // Start recording with optimal chunk size for 30fps
         try {
-          mediaRecorder.start(100); // Record in 100ms chunks
+          mediaRecorder.start(100); // Larger chunks (1 second) for smoother recording
         } catch (error) {
           setCurrentStep("Failed to start recording");
           clearTimeout(safetyTimeout);
@@ -330,8 +338,22 @@ export function SimpleVideoCreator({
           return null;
         };
 
+        const frameAnimationStartTime = Date.now();
+        let expectedFrameTime = frameAnimationStartTime;
+        const frameInterval = 1000 / 30; // 33.33ms per frame for 30fps
+
         const animate = () => {
           try {
+            // Precise timing control to prevent stuttering
+            const now = Date.now();
+            const drift = now - expectedFrameTime;
+
+            // Skip frame if we're running behind
+            if (drift > frameInterval) {
+              expectedFrameTime = now;
+              setTimeout(animate, 0);
+              return;
+            }
             // Check MediaRecorder state periodically
             if (currentFrame % 90 === 0) {
               // Every 3 seconds (90 frames at 30fps)
@@ -532,6 +554,174 @@ export function SimpleVideoCreator({
             // Reset alpha for other drawing operations
             ctx.globalAlpha = 1;
 
+            // Add text overlay with word-by-word highlighting in batches
+            const currentSceneData = scenes[currentSceneIndex];
+            if (currentSceneData) {
+              // Calculate current visible text batch and word-by-word highlighting
+              const words = currentSceneData.text.split(" ");
+              const wordsPerBatch = 6; // Show 6 words per batch
+              const totalWords = words.length;
+
+              // Add a small time offset to make text highlighting slightly ahead of audio for better sync
+              const syncOffset = 0.1; // 100ms ahead - adjust this value to fine-tune sync
+              let textSceneProgress = 0;
+
+              if (
+                continuousAudio &&
+                continuousAudio.sceneTimings.length === scenes.length
+              ) {
+                const timing = continuousAudio.sceneTimings[currentSceneIndex];
+                const timeInScene = currentTimeInSeconds - timing.startTime;
+                const sceneDuration = timing.endTime - timing.startTime;
+                const adjustedTimeInScene = timeInScene + syncOffset;
+                textSceneProgress = Math.min(
+                  Math.max(adjustedTimeInScene / sceneDuration, 0),
+                  1
+                );
+              } else {
+                // For frame-based calculation, add equivalent frames (30fps * 0.1s = 3 frames)
+                const sceneFrameDuration =
+                  sceneDurationsInFrames[currentSceneIndex];
+                const frameInScene = currentFrame - sceneStartFrame + 3; // Add 3 frames (0.1s at 30fps)
+                textSceneProgress = Math.min(
+                  frameInScene / sceneFrameDuration,
+                  1
+                );
+              }
+
+              const currentWordIndex = Math.floor(
+                textSceneProgress * totalWords
+              );
+
+              // Calculate which batch we're in and the words for that batch
+              const currentBatchIndex = Math.floor(
+                currentWordIndex / wordsPerBatch
+              );
+              const batchStart = currentBatchIndex * wordsPerBatch;
+              const batchEnd = Math.min(batchStart + wordsPerBatch, totalWords);
+              const visibleWords = words.slice(batchStart, batchEnd);
+
+              // Calculate which words in the current batch should be highlighted
+              const wordsHighlightedInBatch = Math.max(
+                0,
+                currentWordIndex - batchStart
+              );
+
+              // Convert text to uppercase for styling
+              const upperCaseWords = visibleWords.map((word) =>
+                word.toUpperCase()
+              );
+
+              // Improved text layout with line breaking
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              const fontSize = 60; // Reduced font size to match Remotion and fit in frame
+              ctx.font = `950 ${fontSize}px Impact, Arial Black, sans-serif`; // Maximum bold weight with Impact font
+
+              // Calculate safe text area (accounting for zoom and margins) - CENTERED
+              const textStartY = canvas.height * 0.6; // 60% from top - centered vertically
+              const lineHeight = fontSize * 1.3; // Function to break text into lines - HARD CLAMP to 2 lines maximum
+              const breakIntoLines = (words: string[]) => {
+                const lines: string[][] = [];
+
+                // Always force exactly 2 lines or less
+                if (words.length <= 3) {
+                  // 3 or fewer words stay on one line
+                  lines.push(words);
+                } else {
+                  // Split into exactly 2 lines
+                  const half = Math.ceil(words.length / 2);
+                  lines.push(words.slice(0, half));
+                  lines.push(words.slice(half));
+                }
+
+                // HARD LIMIT: Never allow more than 2 lines
+                lines.splice(2); // Remove any lines beyond index 1 (keeping only 0 and 1)
+
+                return lines;
+              };
+
+              const textLines = breakIntoLines(upperCaseWords);
+
+              // Calculate total text height
+              const totalTextHeight = textLines.length * lineHeight;
+              const startY = textStartY - (totalTextHeight - lineHeight) / 2;
+              let wordsDrawnSoFar = 0;
+
+              // Single pass: Draw text with pink glow and proper shadows
+              textLines.forEach((lineWords, lineIndex) => {
+                const lineY = startY + lineIndex * lineHeight;
+
+                // Calculate line width for centering
+                const wordSpacing = 18;
+                const totalLineWidth =
+                  lineWords.reduce((total, word) => {
+                    return total + ctx.measureText(word).width + wordSpacing;
+                  }, 0) - wordSpacing;
+
+                let currentX = (canvas.width - totalLineWidth) / 2;
+
+                // Draw each word in the line
+                lineWords.forEach((word, wordIndex) => {
+                  const globalWordIndex = wordsDrawnSoFar + wordIndex;
+
+                  // Determine if this word should be highlighted
+                  const currentWordBeingSpoken = Math.floor(
+                    wordsHighlightedInBatch
+                  );
+                  const isLastWordWhenFinished =
+                    textSceneProgress >= 0.95 &&
+                    globalWordIndex === totalWords - 1;
+                  const isCurrentWord =
+                    globalWordIndex === currentWordBeingSpoken ||
+                    isLastWordWhenFinished;
+
+                  // Measure word width
+                  const wordWidth = ctx.measureText(word).width;
+                  const wordX = currentX + wordWidth / 2;
+
+                  // Save context for effects
+                  ctx.save();
+
+                  // Apply shrink effect for highlighted word
+                  if (isCurrentWord) {
+                    ctx.translate(wordX, lineY);
+                    ctx.scale(0.93, 0.93);
+                    ctx.translate(-wordX, -lineY);
+                  }
+
+                  // Set up pink glow shadow for all text
+                  ctx.shadowColor = "rgba(252, 119, 239, 0.4)";
+                  ctx.shadowBlur = 25;
+                  ctx.shadowOffsetX = 0;
+                  ctx.shadowOffsetY = 0;
+
+                  // Draw black outline
+                  ctx.strokeStyle = "#000000";
+                  ctx.lineWidth = 5;
+                  ctx.strokeText(word, wordX, lineY);
+
+                  // Set text color and draw
+                  if (isCurrentWord) {
+                    ctx.fillStyle = "#FF00FF"; // Magenta for highlighted word
+                  } else {
+                    ctx.fillStyle = "#FFFFFF"; // White for other words
+                  }
+
+                  // Draw the main text
+                  ctx.fillText(word, wordX, lineY);
+
+                  // Restore context
+                  ctx.restore();
+
+                  // Move to next word position
+                  currentX += wordWidth + wordSpacing;
+                });
+
+                wordsDrawnSoFar += lineWords.length;
+              });
+            }
+
             // Update progress with more granular tracking
             const currentTime = currentFrame / 30; // Convert frame to time for progress
             const recordingProgress = 50 + (currentTime / totalDuration) * 40; // 50-90%
@@ -553,7 +743,13 @@ export function SimpleVideoCreator({
               : currentTimeInSeconds >= totalDuration + 1; // Add 1 second for individual audio too
 
             if (!videoComplete) {
-              setTimeout(animate, 1000 / 30); // 30 FPS
+              // Schedule next frame with precise timing
+              expectedFrameTime += frameInterval;
+              const nextFrameDelay = Math.max(
+                0,
+                expectedFrameTime - Date.now()
+              );
+              setTimeout(animate, nextFrameDelay);
             } else {
               setTimeout(() => {
                 setCurrentStep("Finalizing video...");
