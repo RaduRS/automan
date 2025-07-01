@@ -1590,7 +1590,7 @@ export default function SceneManagerPage() {
                         continuousAudio: continuousAudio,
                       }}
                       durationInFrames={
-                        continuousAudio &&
+                        (continuousAudio &&
                         continuousAudio.sceneTimings.length === scenes.length
                           ? Math.ceil(continuousAudio.totalDuration * 30) // Use continuous audio total duration
                           : sceneDurations.length > 0
@@ -1602,7 +1602,7 @@ export default function SceneManagerPage() {
                               (scene) =>
                                 scene.imageUrl &&
                                 (scene.voiceUrl || continuousAudio)
-                            ).length * 150
+                            ).length * 150) + 30 // Add 1 second (30 frames) to show last image longer
                       }
                       compositionWidth={1080}
                       compositionHeight={1920}

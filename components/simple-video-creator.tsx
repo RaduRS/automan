@@ -549,8 +549,8 @@ export function SimpleVideoCreator({
 
             // Check if we've reached the end of the video based on time, not scene index
             const videoComplete = continuousAudio
-              ? currentTimeInSeconds >= continuousAudio.totalDuration
-              : sceneIndex >= sceneData.length;
+              ? currentTimeInSeconds >= continuousAudio.totalDuration + 1 // Add 1 second to show last image longer
+              : currentTimeInSeconds >= totalDuration + 1; // Add 1 second for individual audio too
 
             if (!videoComplete) {
               setTimeout(animate, 1000 / 30); // 30 FPS
