@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import {
   Dialog,
@@ -51,6 +52,7 @@ const MasterVideoComposition: React.FC<{
     voiceUrl: string;
   }>;
   sceneDurations: number[]; // Duration in frames for each scene
+  includeTextOverlays: boolean; // New prop to control text overlay visibility
   continuousAudio?: {
     audioUrl: string;
     sceneTimings: Array<{
@@ -61,7 +63,7 @@ const MasterVideoComposition: React.FC<{
     }>;
     totalDuration: number;
   } | null;
-}> = ({ scenes, sceneDurations, continuousAudio }) => {
+}> = ({ scenes, sceneDurations, includeTextOverlays, continuousAudio }) => {
   const frame = useCurrentFrame();
 
   // Use AI-detected timings if continuous audio is available, otherwise use individual durations
@@ -286,7 +288,6 @@ const MasterVideoComposition: React.FC<{
           alt="Previous Scene"
         />
       )}
-
       {/* Current scene */}
       <img
         src={currentScene.imageUrl}
@@ -304,104 +305,107 @@ const MasterVideoComposition: React.FC<{
         }}
         alt="Scene"
       />
-
       {/* Text Overlay - Centered */}
-      <div
-        style={{
-          position: "absolute",
-          top: "60%",
-          left: "50%",
-          transform: "translate(-50%, -60%)",
-          width: "85%", // Reduced width to prevent cutoff
-          zIndex: 10,
-          textAlign: "center",
-          lineHeight: "1.3",
-          // Soft pink shadow for entire sentence container
-          filter:
-            "drop-shadow(0 4px 12px rgba(0,0,0,0.6)) drop-shadow(0 0 20px rgba(252,119,239,0.3))",
-        }}
-      >
-        {(() => {
-          // Convert to uppercase and break into lines (max 2 lines)
-          const upperCaseWords = visibleWords.map((word) => word.toUpperCase());
+      {includeTextOverlays && (
+        <div
+          style={{
+            position: "absolute",
+            top: "60%",
+            left: "50%",
+            transform: "translate(-50%, -60%)",
+            width: "85%", // Reduced width to prevent cutoff
+            zIndex: 10,
+            textAlign: "center",
+            lineHeight: "1.3",
+            // Soft pink shadow for entire sentence container
+            filter:
+              "drop-shadow(0 4px 12px rgba(0,0,0,0.6)) drop-shadow(0 0 20px rgba(252,119,239,0.3))",
+          }}
+        >
+          {(() => {
+            // Convert to uppercase and break into lines (max 2 lines)
+            const upperCaseWords = visibleWords.map((word) =>
+              word.toUpperCase()
+            );
 
-          // HARD CLAMP to exactly 2 lines maximum
-          const lines: string[][] = [];
+            // HARD CLAMP to exactly 2 lines maximum
+            const lines: string[][] = [];
 
-          // Always force exactly 2 lines or less
-          if (upperCaseWords.length <= 3) {
-            // 3 or fewer words stay on one line
-            lines.push(upperCaseWords);
-          } else {
-            // Split into exactly 2 lines
-            const half = Math.ceil(upperCaseWords.length / 2);
-            lines.push(upperCaseWords.slice(0, half));
-            lines.push(upperCaseWords.slice(half));
-          }
+            // Always force exactly 2 lines or less
+            if (upperCaseWords.length <= 3) {
+              // 3 or fewer words stay on one line
+              lines.push(upperCaseWords);
+            } else {
+              // Split into exactly 2 lines
+              const half = Math.ceil(upperCaseWords.length / 2);
+              lines.push(upperCaseWords.slice(0, half));
+              lines.push(upperCaseWords.slice(half));
+            }
 
-          // HARD LIMIT: Never allow more than 2 lines
-          lines.splice(2); // Remove any lines beyond index 1 (keeping only 0 and 1)
+            // HARD LIMIT: Never allow more than 2 lines
+            lines.splice(2); // Remove any lines beyond index 1 (keeping only 0 and 1)
 
-          let wordsDrawnSoFar = 0;
+            let wordsDrawnSoFar = 0;
 
-          return lines.map((lineWords, lineIndex) => (
-            <div
-              key={lineIndex}
-              style={{
-                marginBottom: lineIndex < lines.length - 1 ? "16px" : "0", // More space between lines
-              }}
-            >
-              {lineWords.map((word, wordIndex) => {
-                const globalWordIndex = wordsDrawnSoFar + wordIndex;
+            return lines.map((lineWords, lineIndex) => (
+              <div
+                key={lineIndex}
+                style={{
+                  marginBottom: lineIndex < lines.length - 1 ? "16px" : "0", // More space between lines
+                }}
+              >
+                {lineWords.map((word, wordIndex) => {
+                  const globalWordIndex = wordsDrawnSoFar + wordIndex;
 
-                // Determine if this word should be highlighted
-                // Keep last word highlighted when audio finishes
-                const currentWordBeingSpoken = Math.floor(
-                  wordsHighlightedInBatch
-                );
-                const isLastWordWhenFinished =
-                  adjustedSceneProgress >= 0.95 &&
-                  globalWordIndex === totalWords - 1;
-                const isCurrentWord =
-                  globalWordIndex === currentWordBeingSpoken ||
-                  isLastWordWhenFinished;
+                  // Determine if this word should be highlighted
+                  // Keep last word highlighted when audio finishes
+                  const currentWordBeingSpoken = Math.floor(
+                    wordsHighlightedInBatch
+                  );
+                  const isLastWordWhenFinished =
+                    adjustedSceneProgress >= 0.95 &&
+                    globalWordIndex === totalWords - 1;
+                  const isCurrentWord =
+                    globalWordIndex === currentWordBeingSpoken ||
+                    isLastWordWhenFinished;
 
-                // Update counter after processing
-                if (wordIndex === lineWords.length - 1) {
-                  wordsDrawnSoFar += lineWords.length;
-                }
+                  // Update counter after processing
+                  if (wordIndex === lineWords.length - 1) {
+                    wordsDrawnSoFar += lineWords.length;
+                  }
 
-                return (
-                  <span
-                    key={`${batchStart + globalWordIndex}-${word}`}
-                    style={{
-                      fontSize: "68px", // Reduced font size to fit better in frame
-                      fontWeight: "950", // Maximum bold weight
-                      color: isCurrentWord ? "#FE78EE" : "#FFFFFF", // New pink color for current word, white for others
-                      display: "inline-block",
-                      margin: "0 18px 0 0", // Much more space between words for better readability
-                      transition: "transform 0.025s ease-out", // Lightning fast 25ms animation
-                      transform: isCurrentWord ? "scale(0.93)" : "scale(1)", // Very subtle shrink to 0.93 when highlighted
-                      fontFamily:
-                        "'Impact', 'Arial Black', 'Franklin Gothic Medium', sans-serif", // Even bolder font
-                      textTransform: "uppercase",
-                      WebkitTextStroke: "4px #000000", // Even thicker black outline
-                      letterSpacing: "0px", // Reset letter spacing for better readability
-                      transformOrigin: "center",
-                      // Additional properties for maximum boldness
-                      textShadow:
-                        "2px 2px 0px #000000, -2px -2px 0px #000000, 2px -2px 0px #000000, -2px 2px 0px #000000",
-                    }}
-                  >
-                    {word}
-                  </span>
-                );
-              })}
-            </div>
-          ));
-        })()}
-      </div>
-
+                  return (
+                    <span
+                      key={`${batchStart + globalWordIndex}-${word}`}
+                      style={{
+                        fontSize: "68px", // Reduced font size to fit better in frame
+                        fontWeight: "950", // Maximum bold weight
+                        color: isCurrentWord ? "#FE78EE" : "#FFFFFF", // New pink color for current word, white for others
+                        display: "inline-block",
+                        margin: "0 18px 0 0", // Much more space between words for better readability
+                        transition: "transform 0.025s ease-out", // Lightning fast 25ms animation
+                        transform: isCurrentWord ? "scale(0.93)" : "scale(1)", // Very subtle shrink to 0.93 when highlighted
+                        fontFamily:
+                          "'Impact', 'Arial Black', 'Franklin Gothic Medium', sans-serif", // Even bolder font
+                        textTransform: "uppercase",
+                        WebkitTextStroke: "4px #000000", // Even thicker black outline
+                        letterSpacing: "0px", // Reset letter spacing for better readability
+                        transformOrigin: "center",
+                        // Additional properties for maximum boldness
+                        textShadow:
+                          "2px 2px 0px #000000, -2px -2px 0px #000000, 2px -2px 0px #000000, -2px 2px 0px #000000",
+                      }}
+                    >
+                      {word}
+                    </span>
+                  );
+                })}
+              </div>
+            ));
+          })()}
+        </div>
+      )}{" "}
+      {/* End of includeTextOverlays condition */}
       {/* Audio - use continuous audio with precise timings if available */}
       {continuousAudio &&
       continuousAudio.sceneTimings.length === scenes.length ? (
@@ -464,6 +468,9 @@ export default function SceneManagerPage() {
   const [regeneratingSceneId, setRegeneratingSceneId] = useState<number | null>(
     null
   );
+
+  // Text overlay toggle state
+  const [includeTextOverlays, setIncludeTextOverlays] = useState(true);
 
   // Continuous audio with precise timing
   const [continuousAudio, setContinuousAudio] = useState<{
@@ -1714,6 +1721,23 @@ export default function SceneManagerPage() {
                     <Video className="h-5 w-5" />
                     {scriptData.title}
                   </CardTitle>
+
+                  {/* Text overlay toggle */}
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Checkbox
+                      id="include-text-overlays"
+                      checked={includeTextOverlays}
+                      onCheckedChange={(checked) =>
+                        setIncludeTextOverlays(checked === true)
+                      }
+                    />
+                    <label
+                      htmlFor="include-text-overlays"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Include text overlays in video
+                    </label>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="bg-black aspect-[9/16] rounded-lg overflow-hidden mb-4">
@@ -1751,6 +1775,7 @@ export default function SceneManagerPage() {
                           return durations;
                         })(),
                         continuousAudio: continuousAudio,
+                        includeTextOverlays: includeTextOverlays,
                       }}
                       durationInFrames={
                         (continuousAudio &&
@@ -1797,6 +1822,7 @@ export default function SceneManagerPage() {
                       return filteredScenes;
                     })()}
                     onVideoCreated={handleVideoCreated}
+                    includeTextOverlays={includeTextOverlays}
                   />
                 </CardContent>
               </Card>

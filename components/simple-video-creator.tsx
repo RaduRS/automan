@@ -14,11 +14,13 @@ interface SceneData {
 interface SimpleVideoCreatorProps {
   scenes: SceneData[];
   onVideoCreated: (videoUrl: string) => void;
+  includeTextOverlays: boolean;
 }
 
 export function SimpleVideoCreator({
   scenes,
   onVideoCreated,
+  includeTextOverlays,
 }: SimpleVideoCreatorProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -555,172 +557,178 @@ export function SimpleVideoCreator({
             ctx.globalAlpha = 1;
 
             // Add text overlay with word-by-word highlighting in batches
-            const currentSceneData = scenes[currentSceneIndex];
-            if (currentSceneData) {
-              // Calculate current visible text batch and word-by-word highlighting
-              const words = currentSceneData.text.split(" ");
-              const wordsPerBatch = 6; // Show 6 words per batch
-              const totalWords = words.length;
+            if (includeTextOverlays) {
+              const currentSceneData = scenes[currentSceneIndex];
+              if (currentSceneData) {
+                // Calculate current visible text batch and word-by-word highlighting
+                const words = currentSceneData.text.split(" ");
+                const wordsPerBatch = 6; // Show 6 words per batch
+                const totalWords = words.length;
 
-              // Add a small time offset to make text highlighting slightly ahead of audio for better sync
-              const syncOffset = 0.1; // 100ms ahead - adjust this value to fine-tune sync
-              let textSceneProgress = 0;
+                // Add a small time offset to make text highlighting slightly ahead of audio for better sync
+                const syncOffset = 0.1; // 100ms ahead - adjust this value to fine-tune sync
+                let textSceneProgress = 0;
 
-              if (
-                continuousAudio &&
-                continuousAudio.sceneTimings.length === scenes.length
-              ) {
-                const timing = continuousAudio.sceneTimings[currentSceneIndex];
-                const timeInScene = currentTimeInSeconds - timing.startTime;
-                const sceneDuration = timing.endTime - timing.startTime;
-                const adjustedTimeInScene = timeInScene + syncOffset;
-                textSceneProgress = Math.min(
-                  Math.max(adjustedTimeInScene / sceneDuration, 0),
-                  1
-                );
-              } else {
-                // For frame-based calculation, add equivalent frames (30fps * 0.1s = 3 frames)
-                const sceneFrameDuration =
-                  sceneDurationsInFrames[currentSceneIndex];
-                const frameInScene = currentFrame - sceneStartFrame + 3; // Add 3 frames (0.1s at 30fps)
-                textSceneProgress = Math.min(
-                  frameInScene / sceneFrameDuration,
-                  1
-                );
-              }
-
-              const currentWordIndex = Math.floor(
-                textSceneProgress * totalWords
-              );
-
-              // Calculate which batch we're in and the words for that batch
-              const currentBatchIndex = Math.floor(
-                currentWordIndex / wordsPerBatch
-              );
-              const batchStart = currentBatchIndex * wordsPerBatch;
-              const batchEnd = Math.min(batchStart + wordsPerBatch, totalWords);
-              const visibleWords = words.slice(batchStart, batchEnd);
-
-              // Calculate which words in the current batch should be highlighted
-              const wordsHighlightedInBatch = Math.max(
-                0,
-                currentWordIndex - batchStart
-              );
-
-              // Convert text to uppercase for styling
-              const upperCaseWords = visibleWords.map((word) =>
-                word.toUpperCase()
-              );
-
-              // Improved text layout with line breaking
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              const fontSize = 60; // Reduced font size to match Remotion and fit in frame
-              ctx.font = `950 ${fontSize}px Impact, Arial Black, sans-serif`; // Maximum bold weight with Impact font
-
-              // Calculate safe text area (accounting for zoom and margins) - CENTERED
-              const textStartY = canvas.height * 0.6; // 60% from top - centered vertically
-              const lineHeight = fontSize * 1.3; // Function to break text into lines - HARD CLAMP to 2 lines maximum
-              const breakIntoLines = (words: string[]) => {
-                const lines: string[][] = [];
-
-                // Always force exactly 2 lines or less
-                if (words.length <= 3) {
-                  // 3 or fewer words stay on one line
-                  lines.push(words);
+                if (
+                  continuousAudio &&
+                  continuousAudio.sceneTimings.length === scenes.length
+                ) {
+                  const timing =
+                    continuousAudio.sceneTimings[currentSceneIndex];
+                  const timeInScene = currentTimeInSeconds - timing.startTime;
+                  const sceneDuration = timing.endTime - timing.startTime;
+                  const adjustedTimeInScene = timeInScene + syncOffset;
+                  textSceneProgress = Math.min(
+                    Math.max(adjustedTimeInScene / sceneDuration, 0),
+                    1
+                  );
                 } else {
-                  // Split into exactly 2 lines
-                  const half = Math.ceil(words.length / 2);
-                  lines.push(words.slice(0, half));
-                  lines.push(words.slice(half));
+                  // For frame-based calculation, add equivalent frames (30fps * 0.1s = 3 frames)
+                  const sceneFrameDuration =
+                    sceneDurationsInFrames[currentSceneIndex];
+                  const frameInScene = currentFrame - sceneStartFrame + 3; // Add 3 frames (0.1s at 30fps)
+                  textSceneProgress = Math.min(
+                    frameInScene / sceneFrameDuration,
+                    1
+                  );
                 }
 
-                // HARD LIMIT: Never allow more than 2 lines
-                lines.splice(2); // Remove any lines beyond index 1 (keeping only 0 and 1)
+                const currentWordIndex = Math.floor(
+                  textSceneProgress * totalWords
+                );
 
-                return lines;
-              };
+                // Calculate which batch we're in and the words for that batch
+                const currentBatchIndex = Math.floor(
+                  currentWordIndex / wordsPerBatch
+                );
+                const batchStart = currentBatchIndex * wordsPerBatch;
+                const batchEnd = Math.min(
+                  batchStart + wordsPerBatch,
+                  totalWords
+                );
+                const visibleWords = words.slice(batchStart, batchEnd);
 
-              const textLines = breakIntoLines(upperCaseWords);
+                // Calculate which words in the current batch should be highlighted
+                const wordsHighlightedInBatch = Math.max(
+                  0,
+                  currentWordIndex - batchStart
+                );
 
-              // Calculate total text height
-              const totalTextHeight = textLines.length * lineHeight;
-              const startY = textStartY - (totalTextHeight - lineHeight) / 2;
-              let wordsDrawnSoFar = 0;
+                // Convert text to uppercase for styling
+                const upperCaseWords = visibleWords.map((word) =>
+                  word.toUpperCase()
+                );
 
-              // Single pass: Draw text with pink glow and proper shadows
-              textLines.forEach((lineWords, lineIndex) => {
-                const lineY = startY + lineIndex * lineHeight;
+                // Improved text layout with line breaking
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                const fontSize = 60; // Reduced font size to match Remotion and fit in frame
+                ctx.font = `950 ${fontSize}px Impact, Arial Black, sans-serif`; // Maximum bold weight with Impact font
 
-                // Calculate line width for centering
-                const wordSpacing = 18;
-                const totalLineWidth =
-                  lineWords.reduce((total, word) => {
-                    return total + ctx.measureText(word).width + wordSpacing;
-                  }, 0) - wordSpacing;
+                // Calculate safe text area (accounting for zoom and margins) - CENTERED
+                const textStartY = canvas.height * 0.6; // 60% from top - centered vertically
+                const lineHeight = fontSize * 1.3; // Function to break text into lines - HARD CLAMP to 2 lines maximum
+                const breakIntoLines = (words: string[]) => {
+                  const lines: string[][] = [];
 
-                let currentX = (canvas.width - totalLineWidth) / 2;
-
-                // Draw each word in the line
-                lineWords.forEach((word, wordIndex) => {
-                  const globalWordIndex = wordsDrawnSoFar + wordIndex;
-
-                  // Determine if this word should be highlighted
-                  const currentWordBeingSpoken = Math.floor(
-                    wordsHighlightedInBatch
-                  );
-                  const isLastWordWhenFinished =
-                    textSceneProgress >= 0.95 &&
-                    globalWordIndex === totalWords - 1;
-                  const isCurrentWord =
-                    globalWordIndex === currentWordBeingSpoken ||
-                    isLastWordWhenFinished;
-
-                  // Measure word width
-                  const wordWidth = ctx.measureText(word).width;
-                  const wordX = currentX + wordWidth / 2;
-
-                  // Save context for effects
-                  ctx.save();
-
-                  // Apply shrink effect for highlighted word
-                  if (isCurrentWord) {
-                    ctx.translate(wordX, lineY);
-                    ctx.scale(0.93, 0.93);
-                    ctx.translate(-wordX, -lineY);
-                  }
-
-                  // Set up pink glow shadow for all text
-                  ctx.shadowColor = "rgba(252, 119, 239, 0.4)";
-                  ctx.shadowBlur = 25;
-                  ctx.shadowOffsetX = 0;
-                  ctx.shadowOffsetY = 0;
-
-                  // Draw black outline
-                  ctx.strokeStyle = "#000000";
-                  ctx.lineWidth = 5;
-                  ctx.strokeText(word, wordX, lineY);
-
-                  // Set text color and draw
-                  if (isCurrentWord) {
-                    ctx.fillStyle = "#FF00FF"; // Magenta for highlighted word
+                  // Always force exactly 2 lines or less
+                  if (words.length <= 3) {
+                    // 3 or fewer words stay on one line
+                    lines.push(words);
                   } else {
-                    ctx.fillStyle = "#FFFFFF"; // White for other words
+                    // Split into exactly 2 lines
+                    const half = Math.ceil(words.length / 2);
+                    lines.push(words.slice(0, half));
+                    lines.push(words.slice(half));
                   }
 
-                  // Draw the main text
-                  ctx.fillText(word, wordX, lineY);
+                  // HARD LIMIT: Never allow more than 2 lines
+                  lines.splice(2); // Remove any lines beyond index 1 (keeping only 0 and 1)
 
-                  // Restore context
-                  ctx.restore();
+                  return lines;
+                };
 
-                  // Move to next word position
-                  currentX += wordWidth + wordSpacing;
+                const textLines = breakIntoLines(upperCaseWords);
+
+                // Calculate total text height
+                const totalTextHeight = textLines.length * lineHeight;
+                const startY = textStartY - (totalTextHeight - lineHeight) / 2;
+                let wordsDrawnSoFar = 0;
+
+                // Single pass: Draw text with pink glow and proper shadows
+                textLines.forEach((lineWords, lineIndex) => {
+                  const lineY = startY + lineIndex * lineHeight;
+
+                  // Calculate line width for centering
+                  const wordSpacing = 18;
+                  const totalLineWidth =
+                    lineWords.reduce((total, word) => {
+                      return total + ctx.measureText(word).width + wordSpacing;
+                    }, 0) - wordSpacing;
+
+                  let currentX = (canvas.width - totalLineWidth) / 2;
+
+                  // Draw each word in the line
+                  lineWords.forEach((word, wordIndex) => {
+                    const globalWordIndex = wordsDrawnSoFar + wordIndex;
+
+                    // Determine if this word should be highlighted
+                    const currentWordBeingSpoken = Math.floor(
+                      wordsHighlightedInBatch
+                    );
+                    const isLastWordWhenFinished =
+                      textSceneProgress >= 0.95 &&
+                      globalWordIndex === totalWords - 1;
+                    const isCurrentWord =
+                      globalWordIndex === currentWordBeingSpoken ||
+                      isLastWordWhenFinished;
+
+                    // Measure word width
+                    const wordWidth = ctx.measureText(word).width;
+                    const wordX = currentX + wordWidth / 2;
+
+                    // Save context for effects
+                    ctx.save();
+
+                    // Apply shrink effect for highlighted word
+                    if (isCurrentWord) {
+                      ctx.translate(wordX, lineY);
+                      ctx.scale(0.93, 0.93);
+                      ctx.translate(-wordX, -lineY);
+                    }
+
+                    // Set up pink glow shadow for all text
+                    ctx.shadowColor = "rgba(252, 119, 239, 0.4)";
+                    ctx.shadowBlur = 25;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+
+                    // Draw black outline
+                    ctx.strokeStyle = "#000000";
+                    ctx.lineWidth = 5;
+                    ctx.strokeText(word, wordX, lineY);
+
+                    // Set text color and draw
+                    if (isCurrentWord) {
+                      ctx.fillStyle = "#FF00FF"; // Magenta for highlighted word
+                    } else {
+                      ctx.fillStyle = "#FFFFFF"; // White for other words
+                    }
+
+                    // Draw the main text
+                    ctx.fillText(word, wordX, lineY);
+
+                    // Restore context
+                    ctx.restore();
+
+                    // Move to next word position
+                    currentX += wordWidth + wordSpacing;
+                  });
+
+                  wordsDrawnSoFar += lineWords.length;
                 });
-
-                wordsDrawnSoFar += lineWords.length;
-              });
-            }
+              }
+            } // End of includeTextOverlays condition
 
             // Update progress with more granular tracking
             const currentTime = currentFrame / 30; // Convert frame to time for progress
@@ -790,7 +798,7 @@ export function SimpleVideoCreator({
     } finally {
       // Progress bar stays visible until the video is successfully created
     }
-  }, [scenes, onVideoCreated]);
+  }, [scenes, onVideoCreated, includeTextOverlays]);
 
   return (
     <div className="space-y-4">
