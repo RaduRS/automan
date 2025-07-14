@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSceneReset } from "@/contexts/SceneResetContext";
-import { Loader2, XCircle, FileText } from "lucide-react";
+import { Loader2, XCircle, FileText, Link, Type } from "lucide-react";
 
 interface JobStatus {
   id: string;
@@ -37,7 +38,7 @@ const STATUS_STEPS = [
   { key: "transcribing", label: "Transcribing Audio", progress: 40 },
   {
     key: "transcription_complete",
-    label: "Transcription Complete",
+    label: "Processing Complete",
     progress: 50,
   },
   { key: "generating_script", label: "Generating Script", progress: 80 },
@@ -47,11 +48,13 @@ const STATUS_STEPS = [
 export function TikTokForm() {
   const { resetSceneData } = useSceneReset();
 
+  const [inputMode, setInputMode] = useState<"tiktok" | "text">("tiktok");
   const [urls, setUrls] = useState({
     url1: "",
     url2: "",
     url3: "",
   });
+  const [textInput, setTextInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,8 +62,14 @@ export function TikTokForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!urls.url1.trim()) {
+    // Validate based on input mode
+    if (inputMode === "tiktok" && !urls.url1.trim()) {
       setError("Primary TikTok URL is required");
+      return;
+    }
+
+    if (inputMode === "text" && !textInput.trim()) {
+      setError("Text input is required");
       return;
     }
 
@@ -72,16 +81,24 @@ export function TikTokForm() {
     resetSceneData();
 
     try {
+      const requestBody = {
+        input_mode: inputMode,
+        ...(inputMode === "tiktok" && {
+          tiktok_url_1: urls.url1.trim(),
+          tiktok_url_2: urls.url2.trim() || null,
+          tiktok_url_3: urls.url3.trim() || null,
+        }),
+        ...(inputMode === "text" && {
+          text_input: textInput.trim(),
+        }),
+      };
+
       const response = await fetch("/api/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          tiktok_url_1: urls.url1.trim(),
-          tiktok_url_2: urls.url2.trim() || null,
-          tiktok_url_3: urls.url3.trim() || null,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -135,6 +152,20 @@ export function TikTokForm() {
 
   const getCurrentStep = () => {
     if (!jobStatus) return null;
+
+    // For text input mode, skip downloading and transcribing steps
+    if (
+      inputMode === "text" &&
+      (jobStatus.status === "downloading" ||
+        jobStatus.status === "transcribing")
+    ) {
+      return {
+        key: "transcription_complete",
+        label: "Processing Text",
+        progress: 50,
+      };
+    }
+
     return (
       STATUS_STEPS.find((step) => step.key === jobStatus.status) ||
       STATUS_STEPS[0]
@@ -143,6 +174,7 @@ export function TikTokForm() {
 
   const handleReset = () => {
     setUrls({ url1: "", url2: "", url3: "" });
+    setTextInput("");
     setJobStatus(null);
     setError(null);
     setIsSubmitting(false);
@@ -153,72 +185,110 @@ export function TikTokForm() {
       {/* Input Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Submit TikTok URLs</CardTitle>
+          <CardTitle>Create Script Content</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="url1">Primary TikTok URL *</Label>
-              <Input
-                id="url1"
-                type="url"
-                value={urls.url1}
-                onChange={(e) =>
-                  setUrls((prev) => ({ ...prev, url1: e.target.value }))
-                }
-                placeholder="https://www.tiktok.com/@username/video/..."
-                disabled={isSubmitting || !!jobStatus}
-                required
-              />
-            </div>
+          <Tabs
+            value={inputMode}
+            onValueChange={(value) => setInputMode(value as "tiktok" | "text")}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="tiktok" className="flex items-center gap-2">
+                <Link className="w-4 h-4" />
+                TikTok URLs
+              </TabsTrigger>
+              <TabsTrigger value="text" className="flex items-center gap-2">
+                <Type className="w-4 h-4" />
+                Text Input
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-2">
-              <Label htmlFor="url2">Additional TikTok URL (Optional)</Label>
-              <Input
-                id="url2"
-                type="url"
-                value={urls.url2}
-                onChange={(e) =>
-                  setUrls((prev) => ({ ...prev, url2: e.target.value }))
-                }
-                placeholder="https://www.tiktok.com/@username/video/..."
-                disabled={isSubmitting || !!jobStatus}
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+              <TabsContent value="tiktok" className="space-y-4 mt-0">
+                <div className="space-y-2">
+                  <Label htmlFor="url1">Primary TikTok URL *</Label>
+                  <Input
+                    id="url1"
+                    type="url"
+                    value={urls.url1}
+                    onChange={(e) =>
+                      setUrls((prev) => ({ ...prev, url1: e.target.value }))
+                    }
+                    placeholder="https://www.tiktok.com/@username/video/..."
+                    disabled={isSubmitting || !!jobStatus}
+                    required={inputMode === "tiktok"}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="url3">Additional TikTok URL (Optional)</Label>
-              <Input
-                id="url3"
-                type="url"
-                value={urls.url3}
-                onChange={(e) =>
-                  setUrls((prev) => ({ ...prev, url3: e.target.value }))
-                }
-                placeholder="https://www.tiktok.com/@username/video/..."
-                disabled={isSubmitting || !!jobStatus}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="url2">Additional TikTok URL (Optional)</Label>
+                  <Input
+                    id="url2"
+                    type="url"
+                    value={urls.url2}
+                    onChange={(e) =>
+                      setUrls((prev) => ({ ...prev, url2: e.target.value }))
+                    }
+                    placeholder="https://www.tiktok.com/@username/video/..."
+                    disabled={isSubmitting || !!jobStatus}
+                  />
+                </div>
 
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                disabled={isSubmitting || !!jobStatus}
-                className="flex-1"
-              >
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isSubmitting ? "Submitting..." : "Submit"}
-              </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="url3">Additional TikTok URL (Optional)</Label>
+                  <Input
+                    id="url3"
+                    type="url"
+                    value={urls.url3}
+                    onChange={(e) =>
+                      setUrls((prev) => ({ ...prev, url3: e.target.value }))
+                    }
+                    placeholder="https://www.tiktok.com/@username/video/..."
+                    disabled={isSubmitting || !!jobStatus}
+                  />
+                </div>
+              </TabsContent>
 
-              {jobStatus && (
-                <Button type="button" variant="outline" onClick={handleReset}>
-                  New Job
+              <TabsContent value="text" className="space-y-4 mt-0">
+                <div className="space-y-2">
+                  <Label htmlFor="textInput">Text Content *</Label>
+                  <textarea
+                    id="textInput"
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder="Enter your text content here to generate a script..."
+                    disabled={isSubmitting || !!jobStatus}
+                    required={inputMode === "text"}
+                    className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                  />
+                </div>
+              </TabsContent>
+
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !!jobStatus}
+                  className="flex-1"
+                >
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isSubmitting
+                    ? "Submitting..."
+                    : `Generate from ${
+                        inputMode === "tiktok" ? "TikTok" : "Text"
+                      }`}
                 </Button>
-              )}
-            </div>
-          </form>
+
+                {jobStatus && (
+                  <Button type="button" variant="outline" onClick={handleReset}>
+                    New Job
+                  </Button>
+                )}
+              </div>
+            </form>
+          </Tabs>
         </CardContent>
       </Card>
 

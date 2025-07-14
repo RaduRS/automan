@@ -11,9 +11,11 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export interface Job {
   id: string;
-  tiktok_url_1: string;
+  tiktok_url_1?: string | null;
   tiktok_url_2?: string | null;
   tiktok_url_3?: string | null;
+  text_input?: string | null;
+  input_mode: 'tiktok' | 'text';
   status:
     | "submitted"
     | "downloading"

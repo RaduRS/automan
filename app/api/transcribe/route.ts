@@ -65,6 +65,13 @@ async function downloadTikTokMedia(url: string): Promise<TikTokMedia[]> {
   return exponentialBackoff(async () => {
     console.log(`Downloading TikTok: ${url}`);
 
+    // Basic URL validation
+    if (!url.includes("tiktok.com")) {
+      throw new Error(
+        "Invalid TikTok URL format. Please provide a valid TikTok video URL."
+      );
+    }
+
     const apiUrl = `https://tiktok-scraper7.p.rapidapi.com/`;
     const queryParams = new URLSearchParams({
       url: url,
@@ -90,7 +97,13 @@ async function downloadTikTokMedia(url: string): Promise<TikTokMedia[]> {
     const data = await response.json();
 
     if (data.code !== 0 || !data.data) {
-      throw new Error(`TikTok download failed: ${data.msg || "Unknown error"}`);
+      const errorMsg = data.msg || "Unknown error";
+      if (errorMsg.includes("Url parsing is failed")) {
+        throw new Error(
+          `Invalid TikTok URL or video not found. Please check the URL and try again.`
+        );
+      }
+      throw new Error(`TikTok download failed: ${errorMsg}`);
     }
 
     const videoData: TikTokVideoData = data.data;
@@ -197,41 +210,116 @@ async function transcribeAudio(audioUrl: string): Promise<string> {
   return exponentialBackoff(async () => {
     console.log(`Starting transcription...`);
 
-    const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
-      { url: audioUrl },
-      {
-        model: "nova-2",
-        language: "en",
-        smart_format: true,
-        punctuate: true,
-        diarize: false,
-        detect_language: true,
-        filler_words: false,
+    try {
+      // First try the URL method
+      const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
+        { url: audioUrl },
+        {
+          model: "nova-2",
+          language: "en",
+          smart_format: true,
+          punctuate: true,
+          diarize: false,
+          detect_language: true,
+          filler_words: false,
+        }
+      );
+
+      if (error) {
+        console.error(`Deepgram URL transcription error:`, error);
+
+        // If it's a remote content error (423 Locked), try downloading the file first
+        if (
+          error.message.includes("REMOTE_CONTENT_ERROR") ||
+          error.message.includes("423")
+        ) {
+          console.log(
+            `URL method failed with 423 error, trying file download method...`
+          );
+          return await transcribeAudioFromFile(audioUrl);
+        }
+
+        throw new Error(`Deepgram transcription error: ${error.message}`);
       }
-    );
 
-    if (error) {
-      console.error(`Deepgram error:`, error);
-      throw new Error(`Deepgram transcription error: ${error.message}`);
+      if (!result?.results?.channels?.[0]?.alternatives?.[0]?.transcript) {
+        throw new Error(
+          `No transcript returned from Deepgram. Audio might be too short, silent, or in an unsupported format.`
+        );
+      }
+
+      const transcript = result.results.channels[0].alternatives[0].transcript;
+
+      if (transcript.trim().length === 0) {
+        throw new Error(
+          "Transcript is empty - audio might be silent or too quiet"
+        );
+      }
+
+      console.log(`Transcription complete (${transcript.length} characters)`);
+      return transcript;
+    } catch (error) {
+      console.error(`Transcription failed:`, error);
+      throw error;
     }
-
-    if (!result?.results?.channels?.[0]?.alternatives?.[0]?.transcript) {
-      throw new Error(
-        `No transcript returned from Deepgram. Audio might be too short, silent, or in an unsupported format.`
-      );
-    }
-
-    const transcript = result.results.channels[0].alternatives[0].transcript;
-
-    if (transcript.trim().length === 0) {
-      throw new Error(
-        "Transcript is empty - audio might be silent or too quiet"
-      );
-    }
-
-    console.log(`Transcription complete (${transcript.length} characters)`);
-    return transcript;
   });
+}
+
+async function transcribeAudioFromFile(audioUrl: string): Promise<string> {
+  console.log(`Downloading audio file for transcription...`);
+
+  // Download the audio file
+  const response = await fetch(audioUrl, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to download audio file: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const audioBuffer = await response.arrayBuffer();
+  const audioBufferNode = Buffer.from(audioBuffer);
+  console.log(
+    `Downloaded audio file (${audioBufferNode.length} bytes), transcribing...`
+  );
+
+  const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+    audioBufferNode,
+    {
+      model: "nova-2",
+      language: "en",
+      smart_format: true,
+      punctuate: true,
+      diarize: false,
+      detect_language: true,
+      filler_words: false,
+    }
+  );
+
+  if (error) {
+    console.error(`Deepgram file transcription error:`, error);
+    throw new Error(`Deepgram file transcription error: ${error.message}`);
+  }
+
+  if (!result?.results?.channels?.[0]?.alternatives?.[0]?.transcript) {
+    throw new Error(
+      `No transcript returned from Deepgram. Audio might be too short, silent, or in an unsupported format.`
+    );
+  }
+
+  const transcript = result.results.channels[0].alternatives[0].transcript;
+
+  if (transcript.trim().length === 0) {
+    throw new Error("Transcript is empty - audio might be silent or too quiet");
+  }
+
+  console.log(`File transcription complete (${transcript.length} characters)`);
+  return transcript;
 }
 
 async function updateJobStatus(
@@ -275,6 +363,68 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Check input mode - skip transcription for text input
+    if (job.input_mode === "text") {
+      console.log(
+        `Job ${jobId} is text mode, skipping transcription and going directly to script generation`
+      );
+
+      // Update status to transcription_complete immediately
+      await updateJobStatus(jobId, "transcription_complete");
+
+      // Trigger script generation directly
+      try {
+        const generateResponse = await fetch(
+          `${
+            process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+          }/api/generate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ jobId }),
+          }
+        );
+
+        if (!generateResponse.ok) {
+          const errorData = await generateResponse.json();
+          console.error(`Script generation failed:`, errorData);
+          await updateJobStatus(jobId, "error", {
+            error_message: "Failed to generate script from text input",
+          });
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Failed to generate script from text input",
+            },
+            { status: 500 }
+          );
+        }
+
+        console.log(
+          `Script generation triggered successfully for text job: ${jobId}`
+        );
+        return NextResponse.json({
+          success: true,
+          message: "Text input processed successfully",
+          mode: "text",
+        });
+      } catch (error) {
+        console.error(`Failed to trigger script generation:`, error);
+        await updateJobStatus(jobId, "error", {
+          error_message: "Failed to trigger script generation",
+        });
+        return NextResponse.json(
+          { success: false, error: "Failed to trigger script generation" },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Continue with TikTok processing for tiktok mode
+    console.log(`Processing TikTok URLs for job: ${jobId}`);
 
     // Update status to downloading
     await updateJobStatus(jobId, "downloading");

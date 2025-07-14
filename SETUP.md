@@ -120,6 +120,30 @@ WHERE status NOT IN (
 -- Set proper constraints for fields that should not be null
 ```
 
+## Database Migration for Text Input Support
+
+If you want to add text input support (bifurcation between TikTok URLs and direct text input), run this SQL to add the new field:
+
+```sql
+-- Add text_input field to support direct text input as an alternative to TikTok URLs
+ALTER TABLE jobs 
+ADD COLUMN IF NOT EXISTS text_input TEXT,
+ADD COLUMN IF NOT EXISTS input_mode TEXT DEFAULT 'tiktok' CHECK (input_mode IN ('tiktok', 'text'));
+
+-- Update the constraint to make tiktok_url_1 optional when using text input
+ALTER TABLE jobs ALTER COLUMN tiktok_url_1 DROP NOT NULL;
+
+-- Add a constraint to ensure either tiktok_url_1 or text_input is provided
+ALTER TABLE jobs ADD CONSTRAINT jobs_input_check 
+CHECK (
+  (input_mode = 'tiktok' AND tiktok_url_1 IS NOT NULL) OR 
+  (input_mode = 'text' AND text_input IS NOT NULL)
+);
+
+-- Add index for input_mode for better query performance
+CREATE INDEX IF NOT EXISTS idx_jobs_input_mode ON jobs(input_mode);
+```
+
 ## Database Migration for Existing Users
 
 If you already have the jobs table set up, run this SQL to add the new columns for video workflow:

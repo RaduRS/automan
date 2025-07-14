@@ -14,19 +14,19 @@ interface GeneratedContent {
   hashtags: string;
 }
 
-async function generateScript(
-  transcripts: string[]
-): Promise<GeneratedContent> {
-  const combinedTranscripts = transcripts
-    .map((t, i) => `Video ${i + 1}:\n${t}`)
+async function generateScript(inputTexts: string[]): Promise<GeneratedContent> {
+  const combinedInput = inputTexts
+    .map((text, i) =>
+      inputTexts.length > 1 ? `Source ${i + 1}:\n${text}` : text
+    )
     .join("\n\n");
 
   const prompt = `You are "Peak Script", an expert viral scriptwriter for men's self-improvement content. Your target audience is ambitious men (20-40) seeking practical discipline strategies. Your tone is authentic, direct, and conversational—like a friend giving real advice.
 
-You will transform the following transcripts into a new, original, scroll-stopping script, outputting it as a JSON object containing a title, description, and an array of scenes.
+You will transform the following source content into a new, original, scroll-stopping script, outputting it as a JSON object containing a title, description, and an array of scenes.
 
-**SOURCE TRANSCRIPTS:**
-${combinedTranscripts}
+**SOURCE CONTENT:**
+${combinedInput}
 TARGET SCRIPT LENGTH: Strictly between 180-200 words (optimized for a video duration of approximately 60 seconds).
 
 **YOUR THOUGHT PROCESS (Chain-of-Thought):**
@@ -159,26 +159,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if transcription is complete
-    if (job.status !== "transcription_complete") {
+    // Check if ready for script generation
+    const isTextMode = job.input_mode === "text";
+    const isReadyForGeneration =
+      job.status === "transcription_complete" ||
+      (isTextMode && job.status === "submitted");
+
+    if (!isReadyForGeneration) {
       return NextResponse.json(
-        { success: false, error: "Transcription not complete" },
+        { success: false, error: "Job not ready for script generation" },
         { status: 400 }
       );
     }
 
-    // Collect available transcripts
-    const transcripts = [
-      job.transcript_1,
-      job.transcript_2,
-      job.transcript_3,
-    ].filter(Boolean) as string[];
+    // Prepare input based on input mode
+    let inputTexts: string[] = [];
 
-    if (transcripts.length === 0) {
+    if (job.input_mode === "text") {
+      // Use text input directly
+      if (!job.text_input || !job.text_input.trim()) {
+        return NextResponse.json(
+          { success: false, error: "No text input available" },
+          { status: 400 }
+        );
+      }
+      inputTexts = [job.text_input.trim()];
+    } else if (job.input_mode === "tiktok") {
+      // Use transcripts from TikTok processing
+      const transcripts = [
+        job.transcript_1,
+        job.transcript_2,
+        job.transcript_3,
+      ].filter(Boolean) as string[];
+
+      if (transcripts.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "No transcripts available" },
+          { status: 400 }
+        );
+      }
+      inputTexts = transcripts;
+    } else {
       return NextResponse.json(
-        { success: false, error: "No transcripts available" },
+        { success: false, error: "Invalid input mode" },
         { status: 400 }
       );
+    }
+
+    // For text mode, first update to transcription_complete, then to generating_script
+    if (isTextMode && job.status === "submitted") {
+      await supabase
+        .from("jobs")
+        .update({ status: "transcription_complete" })
+        .eq("id", jobId);
     }
 
     // Update status to generating
@@ -188,7 +221,7 @@ export async function POST(request: NextRequest) {
       .eq("id", jobId);
 
     // Generate content using OpenAI
-    const generatedContent = await generateScript(transcripts);
+    const generatedContent = await generateScript(inputTexts);
 
     // Update job with generated content
     await updateJobWithGeneratedContent(jobId, generatedContent);
