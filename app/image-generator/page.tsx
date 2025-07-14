@@ -8,6 +8,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -27,6 +33,7 @@ import {
   Wand2,
   Plus,
   RefreshCw,
+  Maximize2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -50,6 +57,13 @@ export default function ImageGeneratorPage() {
   >([]);
   const [selectedSceneId, setSelectedSceneId] = useState<string>("");
   const [isReplacingImage, setIsReplacingImage] = useState(false);
+  const [expandedImage, setExpandedImage] = useState<{
+    url: string;
+    prompt: string;
+    sentence: string;
+    id: string;
+  } | null>(null);
+  const [assigningImageId, setAssigningImageId] = useState<string>("");
 
   // Fetch gallery and latest script on page load
   useEffect(() => {
@@ -61,6 +75,21 @@ export default function ImageGeneratorPage() {
   useEffect(() => {
     fetchGallery(currentPage);
   }, [currentPage]);
+
+  // Close assignment dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        assigningImageId &&
+        !(event.target as Element).closest(".assignment-dropdown")
+      ) {
+        setAssigningImageId("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [assigningImageId]);
 
   const fetchGallery = async (page: number) => {
     try {
@@ -589,6 +618,43 @@ export default function ImageGeneratorPage() {
     }
   };
 
+  const handleAssignGalleryImageToScene = async (
+    imageUrl: string,
+    sceneId: string
+  ) => {
+    if (!scriptContext) return;
+
+    try {
+      const sceneIndex = parseInt(sceneId) - 1;
+      const updatedScenes = [...scenes];
+      updatedScenes[sceneIndex].imageUrl = imageUrl;
+      setScenes(updatedScenes);
+
+      // Save to localStorage
+      const scriptHash = hashScript(scriptContext);
+      const sceneData = updatedScenes.map((scene) => ({
+        id: scene.id,
+        text: scene.text,
+        voiceUrl: scene.voiceUrl,
+        imageUrl: scene.imageUrl,
+      }));
+      localStorage.setItem(
+        `automan_scenes_${scriptHash}`,
+        JSON.stringify(sceneData)
+      );
+
+      // Show success message
+      setError(`✅ Successfully assigned image to Scene ${sceneId}!`);
+      setTimeout(() => setError(null), 3000);
+
+      // Close expanded image modal
+      setExpandedImage(null);
+      setAssigningImageId("");
+    } catch {
+      setError("Failed to assign image to scene");
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       {/* Header */}
@@ -1019,20 +1085,44 @@ export default function ImageGeneratorPage() {
               <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-3 mb-6">
                 {galleryData.images.map((image) => (
                   <div key={image.id} className="space-y-1.5">
-                    <div className="relative aspect-[9/16] bg-muted rounded-md overflow-hidden group">
+                    <div
+                      className="relative aspect-[9/16] bg-muted rounded-md overflow-hidden group cursor-pointer"
+                      onClick={() =>
+                        setExpandedImage({
+                          url: image.image_url,
+                          prompt: image.prompt_generated,
+                          sentence: image.sentence,
+                          id: image.id,
+                        })
+                      }
+                    >
                       <img
                         src={image.image_url}
                         alt={`Generated for: ${image.sentence}`}
                         className="w-full h-full object-cover"
                       />
-                      {/* Delete button overlay */}
-                      <button
-                        onClick={() => toggleDeleteMenu(image.id)}
-                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                        title="Delete image"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                      {/* Expand icon */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Maximize2 className="h-8 w-8 text-white drop-shadow-lg" />
+                      </div>
+
+                      {/* Action buttons overlay */}
+                      <div className="absolute top-1 right-1 flex gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDeleteMenu(image.id);
+                          }}
+                          className="p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                          title="Delete image"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
 
                       {/* Delete confirmation dropdown */}
                       {deleteMenuOpen === image.id && (
@@ -1057,7 +1147,7 @@ export default function ImageGeneratorPage() {
                     <p className="text-xs text-muted-foreground line-clamp-1 text-center">
                       {image.prompt_generated}
                     </p>
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-center gap-1">
                       <Button
                         variant="outline"
                         size="sm"
@@ -1073,7 +1163,54 @@ export default function ImageGeneratorPage() {
                           "Get"
                         )}
                       </Button>
+                      {scenes.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setAssigningImageId(image.id)}
+                          className="px-2 py-1 text-xs h-7"
+                          title="Assign to scene"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
+
+                    {/* Scene assignment dropdown */}
+                    {assigningImageId === image.id && (
+                      <div className="assignment-dropdown absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg min-w-32">
+                        <div className="p-2">
+                          <p className="text-xs font-medium mb-2">
+                            Assign to Scene:
+                          </p>
+                          <div className="space-y-1">
+                            {scenes.map((scene) => (
+                              <button
+                                key={scene.id}
+                                onClick={() =>
+                                  handleAssignGalleryImageToScene(
+                                    image.image_url,
+                                    scene.id.toString()
+                                  )
+                                }
+                                className="w-full px-2 py-1 text-xs text-left hover:bg-gray-100 rounded flex items-center justify-between"
+                              >
+                                <span>Scene {scene.id}</span>
+                                {scene.imageUrl && (
+                                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => setAssigningImageId("")}
+                            className="w-full px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded mt-2"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1114,6 +1251,98 @@ export default function ImageGeneratorPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Expanded Image Modal */}
+      <Dialog
+        open={expandedImage !== null}
+        onOpenChange={() => setExpandedImage(null)}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="p-4 pb-2 flex-shrink-0">
+            <DialogTitle>Image Details</DialogTitle>
+          </DialogHeader>
+          {expandedImage && (
+            <div className="px-4 pb-4 overflow-y-auto flex-1">
+              <div className="space-y-4">
+                {/* Large Image */}
+                <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden max-w-sm mx-auto">
+                  <img
+                    src={expandedImage.url}
+                    alt={`Generated for: ${expandedImage.sentence}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Image Info */}
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-medium text-sm mb-1">
+                      Original Sentence:
+                    </h4>
+                    <p className="text-sm bg-gray-50 p-2 rounded">
+                      {expandedImage.sentence}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-sm mb-1">
+                      Generated Prompt:
+                    </h4>
+                    <p className="text-sm bg-gray-50 p-2 rounded">
+                      {expandedImage.prompt}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button
+                    onClick={() =>
+                      downloadGalleryImage(expandedImage.url, expandedImage.id)
+                    }
+                    className="flex-1"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+
+                  {scenes.length > 0 && (
+                    <div className="flex-1">
+                      <Select
+                        value=""
+                        onValueChange={(sceneId) =>
+                          handleAssignGalleryImageToScene(
+                            expandedImage.url,
+                            sceneId
+                          )
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Assign to Scene" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {scenes.map((scene) => (
+                            <SelectItem
+                              key={scene.id}
+                              value={scene.id.toString()}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span>Scene {scene.id}</span>
+                                {scene.imageUrl && (
+                                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

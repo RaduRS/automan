@@ -802,7 +802,8 @@ export default function SceneManagerPage() {
 
       // Check if this is a completely new script (different jobId, not just script content)
       // Only consider it a new script if we already had script data and the jobId is different
-      const isNewScript = scriptData?.jobId && scriptData.jobId !== data.jobId;
+      // Don't reset if this is the first time loading (scriptData is null)
+      const isNewScript = scriptData && scriptData.jobId && scriptData.jobId !== data.jobId;
 
       // Only reset if we have a completely new jobId (new generation from TikTok form)
       if (isNewScript) {
