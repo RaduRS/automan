@@ -254,7 +254,7 @@ CRITICAL: You MUST return the response in this EXACT JSON format:
         "cold colors, harsh lighting, aggressive imagery, dark themes",
     },
     voice: {
-      name: "en-US-Chirp3-HD-Callirrhoe", // Gentle, heartfelt voice for emotional content
+      name: "en-US-Chirp3-HD-Autonoe", // Gentle, heartfelt voice for emotional content
       speed: 0.95,
     },
     seriesFormat: "HeartBeats #{number}",
