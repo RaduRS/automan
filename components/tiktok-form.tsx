@@ -10,7 +10,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSceneReset } from "@/contexts/SceneResetContext";
 import { type BrandName } from "@/lib/brand-config";
-import { Loader2, XCircle, FileText, Link, Type } from "lucide-react";
+import {
+  Loader2,
+  XCircle,
+  FileText,
+  Link,
+  Type,
+  Lightbulb,
+} from "lucide-react";
 
 interface JobStatus {
   id: string;
@@ -61,6 +68,7 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
   });
   const [textInput, setTextInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuggestingContent, setIsSuggestingContent] = useState(false);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,6 +186,43 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
     );
   };
 
+  const handleSuggestContent = async () => {
+    setIsSuggestingContent(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/suggest-content", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          brand: selectedBrand,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setTextInput(data.content);
+      } else {
+        throw new Error(data.error || "Failed to generate content suggestion");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to generate content suggestion"
+      );
+    } finally {
+      setIsSuggestingContent(false);
+    }
+  };
+
   const handleReset = () => {
     setUrls({ url1: "", url2: "", url3: "" });
     setTextInput("");
@@ -258,12 +303,35 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
 
               <TabsContent value="text" className="space-y-4 mt-0">
                 <div className="space-y-2">
-                  <Label htmlFor="textInput">Text Content *</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="textInput">Text Content *</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSuggestContent}
+                      disabled={
+                        isSuggestingContent || isSubmitting || !!jobStatus
+                      }
+                      className="h-8"
+                    >
+                      {isSuggestingContent ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Lightbulb className="h-3 w-3 mr-1" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   <textarea
                     id="textInput"
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
-                    placeholder="Enter your text content here to generate a script..."
+                    placeholder="Enter your text content here to generate a script, or click 'Suggest Content' for AI-generated ideas..."
                     disabled={isSubmitting || !!jobStatus}
                     required={inputMode === "text"}
                     className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"

@@ -309,11 +309,12 @@ export default function PlatformOptimizer() {
                 />
               </div>
             </div>
-
+          </CardContent>
+          <div className="px-6 pb-6">
             <Button
               onClick={handleGenerate}
               disabled={!script.trim() || isGenerating}
-              className="w-full md:w-auto"
+              className="w-full"
             >
               {isGenerating ? (
                 <>
@@ -324,7 +325,7 @@ export default function PlatformOptimizer() {
                 "Generate Platform Content"
               )}
             </Button>
-          </CardContent>
+          </div>
         </Card>
 
         {/* Results Section */}
