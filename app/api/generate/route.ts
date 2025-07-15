@@ -55,8 +55,14 @@ async function generateScript(
     // Parse the JSON response
     const generatedContent: GeneratedContent = JSON.parse(contentString);
 
-    // Add brand-specific hashtags
-    generatedContent.hashtags = brandConfig.hashtags;
+    // Generate basic hashtags based on brand theme
+    const baseHashtags = {
+      peakshifts: "#motivation #selfimprovement #mindset",
+      dreamfloat: "#sleepcore #peaceful #relaxation",
+      lorespark: "#scifi #fantasy #storytelling",
+      heartbeats: "#emotional #growth #selfcare",
+    };
+    generatedContent.hashtags = baseHashtags[brand] || "#motivation #content";
 
     const scenes = generatedContent.scenes;
 
@@ -71,7 +77,7 @@ async function generateScript(
       scenes: ["Error generating script."],
       title: "Error",
       description: "An error occurred.",
-      hashtags: "#peakshifts #error",
+      hashtags: "#motivation #error",
     };
   }
 }
