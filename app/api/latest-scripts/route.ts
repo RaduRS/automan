@@ -6,6 +6,7 @@ interface LatestScript {
   title: string;
   script: string;
   description: string;
+  brand: string;
   created_at: string;
 }
 
@@ -16,7 +17,9 @@ export async function GET() {
     // Fetch the latest 5 jobs that have generated scripts
     const { data: jobs, error } = await supabase
       .from("jobs")
-      .select("id, job_title, openai_script, job_description, created_at")
+      .select(
+        "id, job_title, openai_script, job_description, brand, created_at"
+      )
       .not("openai_script", "is", null)
       .not("job_title", "is", null)
       .order("created_at", { ascending: false })
@@ -36,6 +39,7 @@ export async function GET() {
       title: job.job_title || "Untitled Script",
       script: job.openai_script || "",
       description: job.job_description || "",
+      brand: job.brand || "peakshifts",
       created_at: job.created_at,
     }));
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBrandConfig, type BrandName } from "@/lib/brand-config";
 import OpenAI from "openai";
 
 // Configure OpenAI
@@ -22,10 +23,17 @@ interface PlatformOptimizedContent {
 
 async function generatePlatformContent(
   script: string,
+  brand: BrandName,
   originalTitle?: string,
   originalDescription?: string
 ): Promise<PlatformOptimizedContent> {
-  const prompt = `Based on this motivational/discipline script, create platform-optimized content for each social media platform.
+  const brandConfig = getBrandConfig(brand);
+
+  const prompt = `Based on this ${
+    brandConfig.name
+  } script, create platform-optimized content for each social media platform.
+
+BRAND: ${brandConfig.name} - ${brandConfig.description}
 
 SCRIPT:
 ${script}
@@ -42,25 +50,27 @@ PLATFORM OPTIMIZATION REQUIREMENTS:
 
 **INSTAGRAM REELS:**
 - Description: 1-2 sentences with relevant emojis (NO TITLE NEEDED)
-- Hashtags: 5-15 mix of format tags (#reels, #reelsinstagram) + content-specific tags based on script theme (motivation, discipline, success, mindset, etc.) + audience tags (#mensmotivation, #selfimprovement, etc.)
+- Hashtags: Generate the optimal number of highly discoverable hashtags for this specific content and Instagram's algorithm. Focus on hashtags that will maximize reach and For You page visibility.
 
 **FACEBOOK REELS:**
 - Description: Relatable, shareable content with emojis (NO TITLE NEEDED)
-- Hashtags: 3-5 highly relevant tags including #facebookreels + content-specific hashtags based on script topic
+- Hashtags: Generate the optimal number of relevant hashtags for Facebook's algorithm and this specific content. Focus on hashtags that Facebook users actually search for.
 
 **TIKTOK:**
 - Description: Catchy, trend-relevant with emojis (NO TITLE NEEDED)
-- Hashtags: 4-6 hashtags mixing trending topics with content-specific themes - analyze script for main concepts (discipline, motivation, success, productivity, mindset, etc.)
+- Hashtags: Generate the optimal number of hashtags for TikTok's algorithm and this specific content. Focus on trending hashtags that will maximize For You page visibility and engagement.
 
 **X (TWITTER):**
 - Description: Question or bold statement to encourage engagement (NO TITLE NEEDED)
-- Hashtags: 1-3 topical hashtags only - choose relevant hashtags based on script content (motivation, mindset, productivity, success-focused tags)
+- Hashtags: Generate the optimal number of hashtags for Twitter's algorithm and this content. Focus on hashtags that encourage conversation and discoverability.
 
 CRITICAL REQUIREMENTS:
+- Generate hashtags dynamically based on the actual content themes and current social media trends
+- Prioritize hashtags that maximize discoverability and For You page potential
+- Each platform's hashtags should be optimized for that platform's algorithm
+- No forced brand-specific hashtags - focus on what users actually search for
 - Keep authentic tone and energy from the original script
 - Each platform's content should feel native to that platform
-- Hashtags must follow the proven strategies for each platform
-- No generic corporate speak
 - All content should drive engagement specific to each platform's algorithm
 
 Respond with ONLY valid JSON in this exact format:
@@ -144,7 +154,7 @@ ${prompt}`,
 export async function POST(request: NextRequest) {
   try {
     const requestBody = await request.json();
-    const { script, title, description } = requestBody;
+    const { script, title, description, brand = "peakshifts" } = requestBody;
 
     if (!script || typeof script !== "string" || !script.trim()) {
       return NextResponse.json(
@@ -156,6 +166,7 @@ export async function POST(request: NextRequest) {
     // Generate platform-specific content
     const platformContent = await generatePlatformContent(
       script.trim(),
+      brand as BrandName,
       title?.trim(),
       description?.trim()
     );

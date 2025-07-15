@@ -7,7 +7,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("jobs")
       .select(
-        "id, openai_script, script_scenes, job_title, job_description, job_hashtags, created_at"
+        "id, brand, openai_script, script_scenes, job_title, job_description, job_hashtags, created_at"
       )
       .not("openai_script", "is", null)
       .not("openai_script", "eq", "")
@@ -32,6 +32,7 @@ export async function GET() {
 
     return NextResponse.json({
       jobId: data.id,
+      brand: data.brand,
       script: data.openai_script,
       scenes: data.script_scenes ? JSON.parse(data.script_scenes) : [],
       title: data.job_title,

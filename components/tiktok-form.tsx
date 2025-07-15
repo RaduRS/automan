@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSceneReset } from "@/contexts/SceneResetContext";
+import { type BrandName } from "@/lib/brand-config";
 import { Loader2, XCircle, FileText, Link, Type } from "lucide-react";
 
 interface JobStatus {
@@ -45,7 +46,11 @@ const STATUS_STEPS = [
   { key: "script_generated", label: "Script Ready", progress: 100 },
 ];
 
-export function TikTokForm() {
+interface TikTokFormProps {
+  selectedBrand: BrandName;
+}
+
+export function TikTokForm({ selectedBrand }: TikTokFormProps) {
   const { resetSceneData } = useSceneReset();
 
   const [inputMode, setInputMode] = useState<"tiktok" | "text">("tiktok");
@@ -83,6 +88,7 @@ export function TikTokForm() {
     try {
       const requestBody = {
         input_mode: inputMode,
+        brand: selectedBrand,
         ...(inputMode === "tiktok" && {
           tiktok_url_1: urls.url1.trim(),
           tiktok_url_2: urls.url2.trim() || null,

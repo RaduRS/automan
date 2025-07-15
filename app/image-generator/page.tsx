@@ -219,6 +219,7 @@ export default function ImageGeneratorPage() {
         body: JSON.stringify({
           sentence: sentence.trim(),
           scriptContext: scriptContext.trim() || undefined,
+          brand: "peakshifts", // Default for image generator page - could be enhanced later
         }),
       });
 
@@ -438,6 +439,7 @@ export default function ImageGeneratorPage() {
         body: JSON.stringify({
           prompt: generatedImage.prompt,
           sentence: sentence.trim() || "Regenerated image",
+          brand: "peakshifts", // Default for image generator page - could be enhanced later
         }),
       });
 
@@ -503,6 +505,7 @@ export default function ImageGeneratorPage() {
         },
         body: JSON.stringify({
           prompt: directPrompt.trim(),
+          brand: "peakshifts", // Default for image generator page - could be enhanced later
         }),
       });
 

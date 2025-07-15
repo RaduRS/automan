@@ -155,6 +155,13 @@ ADD COLUMN IF NOT EXISTS script_scenes TEXT,
 ADD COLUMN IF NOT EXISTS video_duration INTEGER,
 ADD COLUMN IF NOT EXISTS video_size_mb DECIMAL(10,2);
 
+-- Add brand support for multi-account content creation
+ALTER TABLE jobs 
+ADD COLUMN IF NOT EXISTS brand TEXT DEFAULT 'peakshifts' CHECK (brand IN ('peakshifts', 'dreamfloat', 'lorespark', 'heartbeats'));
+
+-- Add index for brand for better query performance  
+CREATE INDEX IF NOT EXISTS idx_jobs_brand ON jobs(brand);
+
 -- Update status enum to include new video workflow statuses
 ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check;
 ALTER TABLE jobs ADD CONSTRAINT jobs_status_check CHECK (status IN (

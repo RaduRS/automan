@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import { getBrandConfig, type BrandName } from "@/lib/brand-config";
 
 interface ImageResult {
   url: string;
@@ -8,7 +9,10 @@ interface ImageResult {
   id?: string;
 }
 
-async function generateImage(prompt: string): Promise<string> {
+async function generateImage(
+  prompt: string,
+  brand: BrandName
+): Promise<string> {
   try {
     const response = await fetch(
       "https://api.studio.nebius.ai/v1/images/generations",
@@ -20,12 +24,13 @@ async function generateImage(prompt: string): Promise<string> {
         },
         body: JSON.stringify({
           model: "black-forest-labs/flux-schnell",
-          prompt: `${prompt}. Black and white photography with SOFT contrast, gentle shadows with visible details, balanced lighting that avoids harsh darkness, professional quality, motivational and dynamic imagery. CRITICAL: ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO WRITING, NO CAPTIONS, NO TYPOGRAPHY anywhere in the image. This is a pure visual image with NO TEXT ELEMENTS AT ALL. Ensure ALL areas have visible detail - no pure black or pure white zones. Action-oriented, powerful, and inspiring content`,
+          prompt: `${prompt}. ${
+            getBrandConfig(brand).imageStyle.visualStyle
+          }. CRITICAL: ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO WRITING, NO CAPTIONS, NO TYPOGRAPHY anywhere in the image.`,
           width: 768,
           height: 1344,
           num_inference_steps: 4,
-          negative_prompt:
-            "blurry, low quality, pixelated, distorted, ugly, deformed, text, writing, letters",
+          negative_prompt: getBrandConfig(brand).imageStyle.negativePrompt,
           response_extension: "png",
           response_format: "b64_json",
           seed: -1,
@@ -69,7 +74,7 @@ async function generateImage(prompt: string): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     const requestBody = await request.json();
-    const { prompt, sentence } = requestBody;
+    const { prompt, sentence, brand = "peakshifts" } = requestBody;
 
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return NextResponse.json(
@@ -79,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate image using the existing prompt (skip OpenAI)
-    const imageUrl = await generateImage(prompt.trim());
+    const imageUrl = await generateImage(prompt.trim(), brand as BrandName);
 
     // Store the regenerated image in database (without cost tracking)
     const { data: dbData, error: dbError } = await supabase

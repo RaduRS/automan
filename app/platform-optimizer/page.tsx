@@ -40,6 +40,7 @@ interface LatestScript {
   title: string;
   script: string;
   description: string;
+  brand: string;
   created_at: string;
 }
 
@@ -47,6 +48,7 @@ export default function PlatformOptimizer() {
   const [script, setScript] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [brand, setBrand] = useState("peakshifts");
   const [isGenerating, setIsGenerating] = useState(false);
   const [platformContent, setPlatformContent] =
     useState<PlatformOptimizedContent | null>(null);
@@ -85,6 +87,7 @@ export default function PlatformOptimizer() {
       setScript(selectedScript.script);
       setTitle(selectedScript.title);
       setDescription(selectedScript.description);
+      setBrand(selectedScript.brand || "peakshifts");
     }
   };
 
@@ -102,6 +105,7 @@ export default function PlatformOptimizer() {
           script: script.trim(),
           title: title.trim() || undefined,
           description: description.trim() || undefined,
+          brand: brand,
         }),
       });
 

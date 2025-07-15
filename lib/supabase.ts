@@ -16,6 +16,7 @@ export interface Job {
   tiktok_url_3?: string | null;
   text_input?: string | null;
   input_mode: 'tiktok' | 'text';
+  brand: 'peakshifts' | 'dreamfloat' | 'lorespark' | 'heartbeats';
   status:
     | "submitted"
     | "downloading"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase, type Job } from "@/lib/supabase";
+import { getBrandConfig, type BrandName } from "@/lib/brand-config";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge, badgeVariants } from "@/components/ui/badge";
@@ -22,6 +23,10 @@ import {
   Twitter,
   FileText,
   Eye,
+  Zap,
+  Cloud,
+  Sparkles,
+  Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type VariantProps } from "class-variance-authority";
@@ -41,6 +46,14 @@ const platformIcons = {
   ),
   youtube: Youtube,
   x: Twitter,
+};
+
+// Brand icons mapping
+const brandIcons = {
+  peakshifts: Zap,
+  dreamfloat: Cloud,
+  lorespark: Sparkles,
+  heartbeats: Heart,
 };
 
 interface StatusFilterProps {
@@ -412,6 +425,7 @@ export function JobsTable() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-3 font-medium">Title / Job ID</th>
+                  <th className="text-left p-3 font-medium">Brand</th>
                   <th className="text-left p-3 font-medium">Created</th>
                   <th className="text-left p-3 font-medium">Status</th>
                   <th className="text-center p-3 font-medium">Script</th>
@@ -437,6 +451,19 @@ export function JobsTable() {
                       <div className="font-mono text-xs text-muted-foreground">
                         {job.id.slice(0, 8)}...
                       </div>
+                    </td>
+                    <td className="p-3">
+                      {(() => {
+                        const brand = (job.brand as BrandName) || "peakshifts";
+                        const brandConfig = getBrandConfig(brand);
+                        const Icon = brandIcons[brand];
+                        return (
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-4 w-4" />
+                            <span className="text-sm">{brandConfig.name}</span>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="p-3 text-sm text-muted-foreground">
                       {formatDate(job.created_at)}

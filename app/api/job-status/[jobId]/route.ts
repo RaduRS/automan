@@ -19,7 +19,7 @@ export async function GET(
     const { data, error } = await supabase
       .from("jobs")
       .select(
-        "id, status, error_message, created_at, updated_at, openai_script, job_title, job_description, job_hashtags"
+        "id, brand, status, error_message, created_at, updated_at, openai_script, job_title, job_description, job_hashtags"
       )
       .eq("id", jobId)
       .single();

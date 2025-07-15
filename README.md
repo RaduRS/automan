@@ -238,3 +238,52 @@ Before you begin, ensure you have:
 - A HeyGen account (video creation)
 - A SocialBee account (social media scheduling)
 
+
+
+NEXT STEPS
+
+Project Mission:
+To build and scale an AI-driven content factory that expands on the "Peak Shifts" brand. The system will create and manage three new, distinct faceless content channels for TikTok, Instagram Reels, and YouTube Shorts. The primary goal is to achieve rapid, viral growth by targeting specific, high-potential niches.
+
+Core Content Pillars (The Three Channel Brands):
+
+Brand Name: DreamFloat
+
+Theme: Sleepcore & Dream Visuals.
+
+Content Focus: Calm, hypnotic, and looping dreamscapes with soft narration. Designed for late-night audiences, mindfulness, and retention through saves and replays.
+
+Series Naming: Each video is numbered sequentially (e.g., DreamFloat #7).
+
+Brand Name: LoreSpark
+
+Theme: Sci-Fi & Fantasy Lore.
+
+Content Focus: Curiosity-driven micro-stories, "what if?" scenarios, and world-building lore. Often presented in an episodic format to encourage binge-watching and follows.
+
+Series Naming: Videos are treated as episodes (e.g., LoreSpark Ep 3).
+
+Brand Name: HeartBeats
+
+Theme: Narrative Emotional Content.
+
+Content Focus: A hybrid of guided poetic affirmations and short, emotional micro-stories about love, loss, self-reflection, and inner growth. Aligns with the "Peak Shifts" ethos.
+
+Series Naming: Videos are numbered to create a sense of a collectible series (e.g., HeartBeats #12).
+
+
+
+ Summary: Optimized Batch Image Generation TODO
+Current Issue:
+Batch API generates all images before returning (40s wait, no visual feedback)
+User wants real-time image updates like before
+Solution to Implement:
+Parallel OpenAI calls: Send chunk 1 + chunk 2 to OpenAI simultaneously
+Context awareness: Chunk 2 uses chunk 1 prompts to avoid repetition
+Sequential Nebius + UI updates: As each chunk's prompts return → send to Nebius one by one → update UI immediately
+Real-time feedback: Images pop in as they complete, not all at once
+Benefits:
+✅ Faster prompt generation (parallel OpenAI)
+✅ Better diversity (context between chunks)
+✅ Real-time UI updates (images appear as ready)
+✅ No 40-second wait time

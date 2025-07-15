@@ -440,6 +440,7 @@ interface SceneData {
 
 interface ScriptData {
   jobId: string;
+  brand: string;
   title: string;
   script: string;
   scenes: string[];
@@ -803,7 +804,8 @@ export default function SceneManagerPage() {
       // Check if this is a completely new script (different jobId, not just script content)
       // Only consider it a new script if we already had script data and the jobId is different
       // Don't reset if this is the first time loading (scriptData is null)
-      const isNewScript = scriptData && scriptData.jobId && scriptData.jobId !== data.jobId;
+      const isNewScript =
+        scriptData && scriptData.jobId && scriptData.jobId !== data.jobId;
 
       // Only reset if we have a completely new jobId (new generation from TikTok form)
       if (isNewScript) {
@@ -846,6 +848,7 @@ export default function SceneManagerPage() {
 
       setScriptData({
         jobId: data.jobId,
+        brand: data.brand || "peakshifts",
         title: data.title || "Generated Script",
         script: data.script,
         scenes: scenes,
@@ -951,102 +954,74 @@ export default function SceneManagerPage() {
         prev.map((scene) => ({ ...scene, isGeneratingImage: true }))
       );
 
-      console.log("🚀 Starting concurrent image generation for all scenes...");
+      console.log("🚀 Starting batch image generation for all scenes...");
 
-      // Create concurrent image generation promises with staggered delays
-      const imagePromises = scenes.map(async (scene, index) => {
-        // Stagger requests by 800ms to avoid overwhelming the API
-        const delay = index * 800;
+      // Prepare scenes data for batch API
+      const scenesData = scenes.map((scene) => ({
+        id: scene.id,
+        text: scene.text,
+      }));
 
-        if (delay > 0) {
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-
-        console.log(`🎨 Starting image generation for scene ${index + 1}...`);
-
-        try {
-          const response = await fetch("/api/generate-sentence-image", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sentence: scene.text,
-              scriptContext: scriptData?.script,
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`✅ Scene ${index + 1} image generated successfully`);
-
-            // Update this specific scene immediately as it completes
-            setScenes((prev) => {
-              const updatedScenes = prev.map((s, i) =>
-                i === index
-                  ? {
-                      ...s,
-                      isGeneratingImage: false,
-                      imageUrl: data.image.url,
-                    }
-                  : s
-              );
-
-              // Save to localStorage after each successful generation
-              if (scriptData) {
-                const scriptHash = hashScript(scriptData.script);
-                saveScenesToStorage(scriptHash, updatedScenes);
-              }
-
-              return updatedScenes;
-            });
-
-            return { success: true, index, imageUrl: data.image.url };
-          } else {
-            throw new Error(`Failed to generate image for scene ${index + 1}`);
-          }
-        } catch (sceneError) {
-          console.error(
-            `❌ Error generating image for scene ${index + 1}:`,
-            sceneError
-          );
-
-          // Mark this scene as failed immediately
-          setScenes((prev) =>
-            prev.map((s, i) =>
-              i === index ? { ...s, isGeneratingImage: false } : s
-            )
-          );
-
-          return { success: false, index, error: sceneError };
-        }
+      const response = await fetch("/api/generate-batch-images", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          scenes: scenesData,
+          brand: scriptData?.brand || "peakshifts",
+          scriptContext: scriptData?.script || "",
+        }),
       });
 
-      // Wait for all images to complete (successful or failed)
-      const results = await Promise.allSettled(imagePromises);
-
-      // Count results
-      const successful = results.filter(
-        (r) => r.status === "fulfilled" && r.value.success
-      ).length;
-      const failed = results.filter(
-        (r) =>
-          r.status === "rejected" ||
-          (r.status === "fulfilled" && !r.value.success)
-      ).length;
-
-      console.log(
-        `🎯 Image generation complete: ${successful} successful, ${failed} failed`
-      );
-
-      if (failed > 0) {
-        setError(
-          `${failed} image(s) failed to generate. Check console for details.`
+      if (response.ok) {
+        const data = await response.json();
+        console.log(
+          `🎉 Batch generation successful: ${data.results.length} images generated`
         );
+
+        // Update scenes with generated images
+        setScenes((prev) => {
+          const updatedScenes = prev.map((scene) => {
+            const result = data.results.find(
+              (r: {
+                sceneId: number;
+                url: string;
+                prompt: string;
+                chunkIndex: number;
+              }) => r.sceneId === scene.id
+            );
+            return {
+              ...scene,
+              isGeneratingImage: false,
+              imageUrl: result ? result.url : scene.imageUrl,
+            };
+          });
+
+          // Save to localStorage after bulk generation
+          if (scriptData) {
+            const scriptHash = hashScript(scriptData.script);
+            saveScenesToStorage(scriptHash, updatedScenes);
+          }
+
+          return updatedScenes;
+        });
+
+        // Show success message
+        console.log(
+          `✅ Successfully generated ${data.results.length} images using ${data.chunksProcessed} chunks`
+        );
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate images");
       }
     } catch (error) {
-      console.error("Error in concurrent image generation:", error);
-      setError("Failed to generate images");
+      console.error("❌ Error in batch image generation:", error);
+      setError(
+        `Failed to generate images: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
       setScenes((prev) =>
         prev.map((scene) => ({ ...scene, isGeneratingImage: false }))
       );
@@ -1072,6 +1047,7 @@ export default function SceneManagerPage() {
           fullScript,
           scenes: sceneTexts,
           title: scriptData.title,
+          brand: scriptData?.brand || "peakshifts",
         }),
       });
 
@@ -1124,6 +1100,7 @@ export default function SceneManagerPage() {
         body: JSON.stringify({
           sentence: scenes[sceneIndex].text,
           scriptContext: scriptData?.script,
+          brand: scriptData?.brand || "peakshifts",
         }),
       });
 

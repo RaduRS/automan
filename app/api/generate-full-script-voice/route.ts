@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { getBrandConfig, type BrandName } from "@/lib/brand-config";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -10,7 +11,12 @@ cloudinary.config({
 
 export async function POST(request: NextRequest) {
   try {
-    const { fullScript, scenes, title } = await request.json();
+    const {
+      fullScript,
+      scenes,
+      title,
+      brand = "peakshifts",
+    } = await request.json();
 
     if (!fullScript || !scenes) {
       return NextResponse.json(
@@ -21,7 +27,10 @@ export async function POST(request: NextRequest) {
 
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
     const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
-    const VOICE_NAME = process.env.GOOGLE_TTS_VOICE_NAME || "en-US-Neural2-D";
+
+    // Get brand-specific voice configuration
+    const brandConfig = getBrandConfig(brand as BrandName);
+    const { name: VOICE_NAME, speed: speakingRate } = brandConfig.voice;
 
     if (!GOOGLE_API_KEY) {
       return NextResponse.json(
@@ -37,7 +46,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("🎙️ Generating full script voice with Google TTS...");
+    console.log(
+      `🎙️ Generating full script voice for ${brandConfig.name} with voice: ${VOICE_NAME} (speed: ${speakingRate})`
+    );
 
     // Step 1: Generate voice for the entire script using Google TTS
     const voiceResponse = await fetch(
@@ -56,8 +67,7 @@ export async function POST(request: NextRequest) {
           },
           audioConfig: {
             audioEncoding: "LINEAR16",
-            speakingRate: 1,
-            pitch: 0,
+            speakingRate: speakingRate,
             volumeGainDb: 0,
             sampleRateHertz: 24000,
             effectsProfileId: [],

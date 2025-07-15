@@ -4,8 +4,14 @@ import { supabase } from "@/lib/supabase";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { input_mode, tiktok_url_1, tiktok_url_2, tiktok_url_3, text_input } =
-      body;
+    const {
+      input_mode,
+      brand = "peakshifts",
+      tiktok_url_1,
+      tiktok_url_2,
+      tiktok_url_3,
+      text_input,
+    } = body;
 
     // Validate input mode
     if (!input_mode || !["tiktok", "text"].includes(input_mode)) {
@@ -68,6 +74,7 @@ export async function POST(request: NextRequest) {
       .from("jobs")
       .insert({
         input_mode,
+        brand,
         tiktok_url_1: input_mode === "tiktok" ? tiktok_url_1 : null,
         tiktok_url_2: input_mode === "tiktok" ? tiktok_url_2 || null : null,
         tiktok_url_3: input_mode === "tiktok" ? tiktok_url_3 || null : null,

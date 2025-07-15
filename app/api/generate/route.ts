@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getBrandConfig, type BrandName } from "@/lib/brand-config";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -14,54 +15,21 @@ interface GeneratedContent {
   hashtags: string;
 }
 
-async function generateScript(inputTexts: string[]): Promise<GeneratedContent> {
+async function generateScript(
+  inputTexts: string[],
+  brand: BrandName
+): Promise<GeneratedContent> {
   const combinedInput = inputTexts
     .map((text, i) =>
       inputTexts.length > 1 ? `Source ${i + 1}:\n${text}` : text
     )
     .join("\n\n");
 
-  const prompt = `You are "Peak Script", an expert viral scriptwriter for men's self-improvement content. Your target audience is ambitious men (20-40) seeking practical discipline strategies. Your tone is authentic, direct, and conversational—like a friend giving real advice.
-
-You will transform the following source content into a new, original, scroll-stopping script, outputting it as a JSON object containing a title, description, and an array of scenes.
-
-**SOURCE CONTENT:**
-${combinedInput}
-TARGET SCRIPT LENGTH: Strictly between 180-200 words (optimized for a video duration of approximately 60 seconds).
-
-**YOUR THOUGHT PROCESS (Chain-of-Thought):**
-1.  **Deconstruct Core Message:** What is the single most powerful idea or insight from the source transcripts?
-2.  **Brainstorm Hooks:** Based on the core message, brainstorm 3 different, powerful opening hooks using the "APPROVED OPENING PATTERNS". They must feel authentic and not cliché.
-3.  **Select Best Hook:** Choose the most potent, scroll-stopping hook from the brainstormed list.
-4.  **Draft the Script:** (In Your Head) Mentally draft a complete, ~180-word script that starts with the chosen hook and develops the core message. It must be conversational and provide practical insight.
-5.  **Refine & Polish:** Review the draft against all "CRITICAL RULES & CONSTRAINTS". Fix any banned phrases, check grammar, and ensure it flows like natural speech.
-6.  **Breakdown and Refine Scenes:** Follow the SCENE BREAKDOWN INSTRUCTIONS.
-7.  **Generate Metadata:** Create a compelling title and a short description. The description MUST end with an engaging question for the audience.
-
-**CRITICAL RULES & CONSTRAINTS:**
--   **Tone:** Authentic, direct, conversational, no corporate fluff.
--   **Banned Words/Phrases:** "The brutal truth is...", "Unleash", "Dominate", "Conquer", "Elevate", "Transform your mindset", "Ancient wisdom", "Unlock your potential", "It's time to...", "Ever notice", "You ever", "Did you ever". Avoid all generic hustle-culture buzzwords.
--   **Output Format:** You MUST return ONLY a valid JSON object. Do not include any text or markdown before or after the JSON.
-
-**SCENE BREAKDOWN INSTRUCTIONS (CRITICAL):**
-- Your primary task is to generate the "scenes" array. The full script will be constructed from this array.
-- Each scene = 1 sentence. **Semantic Cohesion Rule:** If two consecutive sentences are directly related and form a single idea (like a setup and a payoff, or a person and their achievement), you MUST combine them into a single scene.
-- **Target Scene Count:** The final number of scenes MUST be between 8 and 12. This is the ideal range for a ~60-second video to maintain viewer engagement.
-- **This is the most important rule: Every single string in the "scenes" array MUST be between 10 and 25 words.** This is a strict requirement.
-}
-
-CRITICAL: You MUST return the response in this EXACT JSON format:
-
-{
-  "scenes": [
-    "First scene sentence here",
-    "Second scene sentence here",
-    "Third scene sentence here"
-  ],
-  "title": "Video title here",
-  "description": "Description here",
-}
-`;
+  const brandConfig = getBrandConfig(brand);
+  const prompt = brandConfig.scriptPrompt.replace(
+    "{INPUT_TEXT}",
+    combinedInput
+  );
 
   try {
     const completion = await openai.chat.completions.create({
@@ -87,9 +55,8 @@ CRITICAL: You MUST return the response in this EXACT JSON format:
     // Parse the JSON response
     const generatedContent: GeneratedContent = JSON.parse(contentString);
 
-    // Programmatically add your strategic hashtags
-    generatedContent.hashtags =
-      "#peakshifts #motivation #selfimprovement #discipline #mindsetshift";
+    // Add brand-specific hashtags
+    generatedContent.hashtags = brandConfig.hashtags;
 
     const scenes = generatedContent.scenes;
 
@@ -220,8 +187,9 @@ export async function POST(request: NextRequest) {
       .update({ status: "generating_script" })
       .eq("id", jobId);
 
-    // Generate content using OpenAI
-    const generatedContent = await generateScript(inputTexts);
+    // Generate content using OpenAI with brand-specific prompt
+    const brand = (job.brand as BrandName) || "peakshifts";
+    const generatedContent = await generateScript(inputTexts, brand);
 
     // Update job with generated content
     await updateJobWithGeneratedContent(jobId, generatedContent);
