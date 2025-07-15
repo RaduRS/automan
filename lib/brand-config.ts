@@ -195,7 +195,7 @@ CRITICAL: You MUST return the response in this EXACT JSON format:
         "realistic modern settings, mundane objects, black and white, overly bright",
     },
     voice: {
-      name: "en-US-Chirp3-HD-Fenrir", // Mysterious voice for fantasy content
+      name: "en-US-Chirp3-HD-Algieba", // Mysterious voice for fantasy content
       speed: 1.0,
     },
     seriesFormat: "LoreSpark Ep {number}",
@@ -254,7 +254,7 @@ CRITICAL: You MUST return the response in this EXACT JSON format:
         "cold colors, harsh lighting, aggressive imagery, dark themes",
     },
     voice: {
-      name: "en-US-Chirp3-HD-Leda", // Gentle, heartfelt voice for emotional content
+      name: "en-US-Chirp3-HD-Puck", // Gentle, heartfelt voice for emotional content
       speed: 0.95,
     },
     seriesFormat: "HeartBeats #{number}",
