@@ -84,20 +84,37 @@ export default function Home() {
             return (
               <Card
                 key={key}
-                className={`cursor-pointer transition-all duration-200 ${
+                className={`h-full flex flex-col cursor-pointer transition-all duration-100 ${
                   isEnabled
-                    ? `${brandColors[brandKey]} border-2 hover:shadow-lg`
+                    ? `${
+                        brandColors[brandKey]
+                      } border-2 hover:shadow-2xl hover:shadow-${
+                        brandKey === "peakshifts"
+                          ? "orange"
+                          : brandKey === "dreamfloat"
+                          ? "blue"
+                          : brandKey === "lorespark"
+                          ? "purple"
+                          : "pink"
+                      }-500/20 hover:scale-[1.02] hover:-translate-y-1 group`
                     : "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed"
                 }`}
                 onClick={() => isEnabled && setSelectedBrand(brandKey)}
               >
                 <CardHeader className="text-center">
                   <div className="flex items-center justify-center mb-3">
-                    <Icon
-                      className={`h-12 w-12 ${
-                        isEnabled ? "text-current" : "text-gray-400"
-                      }`}
-                    />
+                    <div className="relative">
+                      <Icon
+                        className={`h-12 w-12 transition-all duration-150 ${
+                          isEnabled
+                            ? "text-current group-hover:scale-105 group-hover:rotate-2"
+                            : "text-gray-400"
+                        }`}
+                      />
+                      {isEnabled && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-150 rounded-full blur-sm" />
+                      )}
+                    </div>
                   </div>
                   <CardTitle className="text-xl flex items-center justify-center gap-2">
                     {config.name}
@@ -108,17 +125,26 @@ export default function Home() {
                     )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p
-                    className={`text-center ${
-                      isEnabled ? "text-muted-foreground" : "text-gray-400"
-                    }`}
-                  >
-                    {config.description}
-                  </p>
+                <CardContent className="flex flex-col flex-1 justify-between">
+                  <div>
+                    <p
+                      className={`text-center transition-all duration-150 ${
+                        isEnabled
+                          ? "text-muted-foreground group-hover:text-foreground"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {config.description}
+                    </p>
+                  </div>
                   {isEnabled && (
-                    <div className="mt-4 text-center">
-                      <Button className="w-full">Create Content</Button>
+                    <div className="mt-6 text-center flex-1 flex items-end">
+                      <Button
+                        className="w-full transition-all duration-150 hover:shadow-lg hover:shadow-current/20 group-hover:scale-102"
+                        size="lg"
+                      >
+                        Create Content
+                      </Button>
                     </div>
                   )}
                 </CardContent>
