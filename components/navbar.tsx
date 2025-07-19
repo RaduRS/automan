@@ -42,13 +42,13 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+    <nav className="bg-transparent backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo/Brand */}
           <div className="flex items-center space-x-4">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="font-bold text-xl">AutoMan</div>
+              <div className="font-bold text-xl text-white tracking-tight">AutoMan</div>
             </Link>
           </div>
 
@@ -61,12 +61,16 @@ export function Navbar() {
               return (
                 <Link key={item.href} href={item.href}>
                   <Button
-                    variant={isActive ? "default" : "outline"}
+                    variant={isActive ? "default" : "ghost"}
                     size="sm"
-                    className="flex items-center gap-2"
+                    className={`flex items-center gap-2 transition-all duration-200 ${
+                      isActive 
+                        ? "bg-white text-black hover:bg-gray-100 shadow-sm" 
+                        : "text-gray-300 hover:text-white hover:bg-gray-800/50 border-gray-600/30"
+                    }`}
                   >
                     <Icon className="h-4 w-4" />
-                    <span className="hidden lg:inline">{item.name}</span>
+                    <span className="hidden lg:inline font-medium">{item.name}</span>
                   </Button>
                 </Link>
               );
@@ -83,9 +87,13 @@ export function Navbar() {
                 return (
                   <Link key={item.href} href={item.href}>
                     <Button
-                      variant={isActive ? "default" : "outline"}
+                      variant={isActive ? "default" : "ghost"}
                       size="sm"
-                      className="px-2"
+                      className={`px-2 transition-all duration-200 ${
+                        isActive 
+                          ? "bg-white text-black hover:bg-gray-100" 
+                          : "text-gray-300 hover:text-white hover:bg-gray-800/50"
+                      }`}
                     >
                       <Icon className="h-4 w-4" />
                     </Button>
