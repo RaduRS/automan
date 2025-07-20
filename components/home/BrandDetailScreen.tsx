@@ -19,7 +19,22 @@ export function BrandDetailScreen({ selectedBrand }: BrandDetailScreenProps) {
         {/* Selected Brand Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Icon className="h-8 w-8 text-primary" />
+            <div 
+              className="h-8 w-8 rounded-full flex items-center justify-center"
+              style={{
+                background: selectedBrand === 'dreamfloat' 
+                  ? 'linear-gradient(135deg, #667EEA, #764BA2, #A8E6CF, #88D8C0)'
+                  : selectedBrand === 'peakshifts'
+                  ? 'linear-gradient(135deg, #FF6B35, #F7931E, #FFD23F, #FF8C42)'
+                  : selectedBrand === 'lorespark'
+                  ? 'linear-gradient(135deg, #8B5CF6, #A855F7, #C084FC, #DDD6FE)'
+                  : selectedBrand === 'heartbeats'
+                  ? 'linear-gradient(135deg, #FF6B9D, #F093FB, #F5576C, #FF8A80)'
+                  : '#ffffff',
+              }}
+            >
+              <Icon className="h-5 w-5 text-white" />
+            </div>
             <h1 className="text-4xl font-bold tracking-tight text-white">
               {brandConfig.name}
             </h1>

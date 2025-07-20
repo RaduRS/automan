@@ -805,7 +805,9 @@ export function SimpleVideoCreator({
       <Button
         onClick={createVideo}
         disabled={isCreating || !scenes || scenes.length === 0}
-        className="w-full"
+        variant="outline"
+        className="w-full text-white hover:bg-black hover:cursor-pointer"
+        style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
       >
         {isCreating ? "Creating Video..." : "Create Video"}
       </Button>
@@ -813,7 +815,7 @@ export function SimpleVideoCreator({
       {isCreating && (
         <div className="space-y-2">
           <Progress value={progress} className="w-full" />
-          <p className="text-sm text-gray-600 text-center">{currentStep}</p>
+          <p className="text-sm text-white text-center">{currentStep}</p>
         </div>
       )}
 

@@ -209,33 +209,33 @@ export default function PlatformOptimizer() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold tracking-tight">
+        <div className="text-center mb-8 pt-16">
+          <h1 className="text-3xl font-bold tracking-tight text-white">
             Platform Content Optimizer
           </h1>
-          <p className="text-muted-foreground text-lg mt-2">
+          <p className="text-gray-300 mt-2">
             Generate platform-specific titles, descriptions, and hashtags
             optimized for each social media platform
           </p>
         </div>
 
         {/* Input Section */}
-        <Card className="mb-8">
+        <Card className="mb-8 border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
           <CardHeader>
-            <CardTitle>Input Your Content</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-white">Input Your Content</CardTitle>
+            <CardDescription className="text-gray-300">
               Enter your script to generate optimized content for all platforms
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Load from Database Dropdown */}
             <div>
-              <Label className="text-base font-medium flex items-center gap-2">
+              <Label className="text-base font-medium flex items-center gap-2 text-white">
                 <History className="h-4 w-4" />
                 Load from Database (Optional)
               </Label>
               <Select onValueChange={handleScriptSelect}>
-                <SelectTrigger className="w-full mt-2">
+                <SelectTrigger className="w-full mt-2 text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
                   <SelectValue
                     placeholder={
                       isLoadingScripts
@@ -244,14 +244,14 @@ export default function PlatformOptimizer() {
                     }
                   />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
                   {latestScripts.map((script) => (
-                    <SelectItem key={script.id} value={script.id}>
+                    <SelectItem key={script.id} value={script.id} className="text-white hover:bg-gray-700">
                       <div className="flex flex-col">
                         <span className="font-medium text-left">
                           {script.title}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-gray-400">
                           {new Date(script.created_at).toLocaleDateString()} •{" "}
                           {script.script.substring(0, 60)}...
                         </span>
@@ -259,7 +259,7 @@ export default function PlatformOptimizer() {
                     </SelectItem>
                   ))}
                   {latestScripts.length === 0 && !isLoadingScripts && (
-                    <SelectItem value="no-scripts" disabled>
+                    <SelectItem value="no-scripts" disabled className="text-gray-400">
                       No scripts found
                     </SelectItem>
                   )}
@@ -268,7 +268,7 @@ export default function PlatformOptimizer() {
             </div>
 
             <div>
-              <Label htmlFor="script" className="text-base font-medium">
+              <Label htmlFor="script" className="text-base font-medium text-white">
                 Script * (Required)
               </Label>
               <textarea
@@ -276,13 +276,14 @@ export default function PlatformOptimizer() {
                 placeholder="Paste your motivational/discipline script here..."
                 value={script}
                 onChange={(e) => setScript(e.target.value)}
-                className="w-full min-h-[120px] mt-2 px-3 py-2 border border-input rounded-md bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-input resize-vertical"
+                className="w-full min-h-[120px] mt-2 px-3 py-2 border rounded-md text-white placeholder-gray-400 focus:border-blue-500 resize-vertical"
+                style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="title" className="text-base font-medium">
+                <Label htmlFor="title" className="text-base font-medium text-white">
                   Original Title (Optional)
                 </Label>
                 <input
@@ -291,12 +292,13 @@ export default function PlatformOptimizer() {
                   placeholder="Your original title..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full mt-2 px-3 py-2 border border-input rounded-md bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
+                  className="w-full mt-2 px-3 py-2 border rounded-md text-white placeholder-gray-400 focus:border-blue-500"
+                  style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
                 />
               </div>
 
               <div>
-                <Label htmlFor="description" className="text-base font-medium">
+                <Label htmlFor="description" className="text-base font-medium text-white">
                   Original Description (Optional)
                 </Label>
                 <input
@@ -305,7 +307,8 @@ export default function PlatformOptimizer() {
                   placeholder="Your original description..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full mt-2 px-3 py-2 border border-input rounded-md bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
+                  className="w-full mt-2 px-3 py-2 border rounded-md text-white placeholder-gray-400 focus:border-blue-500"
+                  style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
                 />
               </div>
             </div>
@@ -314,7 +317,8 @@ export default function PlatformOptimizer() {
             <Button
               onClick={handleGenerate}
               disabled={!script.trim() || isGenerating}
-              className="w-full"
+              className="w-full h-11 text-base text-white"
+              style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
             >
               {isGenerating ? (
                 <>
@@ -330,19 +334,24 @@ export default function PlatformOptimizer() {
 
         {/* Results Section */}
         {platformContent && (
-          <Card>
+          <Card className="border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
             <CardHeader>
-              <CardTitle>Platform-Optimized Content</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Platform-Optimized Content</CardTitle>
+              <CardDescription className="text-gray-300">
                 Copy the content optimized for each platform. Click any text to
                 copy it to your clipboard.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="facebook" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-5 rounded-lg gap-2" style={{ backgroundColor: '#212223' }}>
                   {Object.entries(platformConfigs).map(([key, config]) => (
-                    <TabsTrigger key={key} value={key} className="text-xs">
+                    <TabsTrigger 
+                      key={key} 
+                      value={key} 
+                      className="text-xs data-[state=active]:text-white text-gray-500 rounded-md transition-all duration-200"
+                      style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
+                    >
                       {config.name}
                     </TabsTrigger>
                   ))}
@@ -365,10 +374,10 @@ export default function PlatformOptimizer() {
                             className={`w-4 h-4 rounded-full ${config.color}`}
                           ></div>
                           <div>
-                            <h3 className="text-lg font-semibold">
+                            <h3 className="text-lg font-semibold text-white">
                               {config.name}
                             </h3>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-gray-300">
                               Format: {config.format} • Strategy:{" "}
                               {config.strategy}
                             </p>
@@ -380,7 +389,8 @@ export default function PlatformOptimizer() {
                           {/* Title - Only for YouTube */}
                           {platform === "youtube" && (
                             <Card
-                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              className="cursor-pointer hover:bg-gray-700 transition-colors border text-white"
+                              style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                               onClick={() =>
                                 copyToClipboard(
                                   content.title,
@@ -390,26 +400,27 @@ export default function PlatformOptimizer() {
                             >
                               <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                                  <CardTitle className="text-sm font-medium text-gray-300">
                                     TITLE
                                   </CardTitle>
                                   <div className="flex items-center gap-2">
                                     <Badge
                                       variant="secondary"
-                                      className="text-xs"
+                                      className="text-xs text-white"
+                                      style={{ backgroundColor: '#161819' }}
                                     >
                                       {content.title.length} chars
                                     </Badge>
                                     {copiedItems[`${platform}-title`] ? (
                                       <CheckCircle className="h-4 w-4 text-green-500" />
                                     ) : (
-                                      <Copy className="h-4 w-4 text-muted-foreground" />
+                                      <Copy className="h-4 w-4 text-gray-400" />
                                     )}
                                   </div>
                                 </div>
                               </CardHeader>
                               <CardContent className="pt-0">
-                                <p className="text-base font-medium">
+                                <p className="text-base font-medium text-white">
                                   {content.title}
                                 </p>
                               </CardContent>
@@ -421,7 +432,8 @@ export default function PlatformOptimizer() {
                             {/* Complete Post */}
                             {platform === "youtube" ? (
                               <Card
-                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                className="cursor-pointer hover:bg-gray-700 transition-colors border text-white"
+                                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                                 onClick={() =>
                                   copyToClipboard(
                                     `${content.title} #shorts\n\n${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`,
@@ -431,25 +443,25 @@ export default function PlatformOptimizer() {
                               >
                                 <CardHeader className="pb-3">
                                   <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                    <CardTitle className="text-sm font-medium text-gray-300">
                                       COMPLETE POST
                                     </CardTitle>
                                     {copiedItems[`${platform}-complete`] ? (
                                       <CheckCircle className="h-4 w-4 text-green-500" />
                                     ) : (
-                                      <Copy className="h-4 w-4 text-muted-foreground" />
+                                      <Copy className="h-4 w-4 text-gray-400" />
                                     )}
                                   </div>
                                 </CardHeader>
                                 <CardContent className="pt-0">
-                                  <div className="space-y-2 p-4 bg-muted rounded-md">
-                                    <p className="font-medium">
+                                  <div className="space-y-2 p-4 rounded-md" style={{ backgroundColor: '#161819' }}>
+                                    <p className="font-medium text-white">
                                       {content.title}
                                     </p>
-                                    <p className="text-muted-foreground">
+                                    <p className="text-gray-300">
                                       {content.description}
                                     </p>
-                                    <p className="font-mono text-blue-600 text-sm">
+                                    <p className="font-mono text-blue-400 text-sm">
                                       {content.hashtags}
                                     </p>
                                   </div>
@@ -457,7 +469,8 @@ export default function PlatformOptimizer() {
                               </Card>
                             ) : (
                               <Card
-                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                className="cursor-pointer hover:bg-gray-700 transition-colors border text-white"
+                                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                                 onClick={() =>
                                   copyToClipboard(
                                     `${content.description}\n${content.hashtags}`,
@@ -467,22 +480,22 @@ export default function PlatformOptimizer() {
                               >
                                 <CardHeader className="pb-3">
                                   <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                    <CardTitle className="text-sm font-medium text-gray-300">
                                       COMPLETE POST
                                     </CardTitle>
                                     {copiedItems[`${platform}-complete`] ? (
                                       <CheckCircle className="h-4 w-4 text-green-500" />
                                     ) : (
-                                      <Copy className="h-4 w-4 text-muted-foreground" />
+                                      <Copy className="h-4 w-4 text-gray-400" />
                                     )}
                                   </div>
                                 </CardHeader>
                                 <CardContent className="pt-0">
-                                  <div className="space-y-2 p-4 bg-muted rounded-md">
-                                    <p className="text-muted-foreground">
+                                  <div className="space-y-2 p-4 rounded-md" style={{ backgroundColor: '#161819' }}>
+                                    <p className="text-gray-300">
                                       {content.description}
                                     </p>
-                                    <p className="font-mono text-blue-600 text-sm">
+                                    <p className="font-mono text-blue-400 text-sm">
                                       {content.hashtags}
                                     </p>
                                   </div>
@@ -492,7 +505,8 @@ export default function PlatformOptimizer() {
 
                             {/* First Comment Promotional Content */}
                             <Card
-                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              className="cursor-pointer hover:bg-gray-700 transition-colors border text-white"
+                              style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                               onClick={() => {
                                 const promoData =
                                   getPromotionalContent(platform);
@@ -504,26 +518,27 @@ export default function PlatformOptimizer() {
                             >
                               <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                                  <CardTitle className="text-sm font-medium text-gray-300">
                                     {getPromotionalContent(platform).title}
                                   </CardTitle>
                                   <div className="flex items-center gap-2">
                                     <Badge
                                       variant="secondary"
-                                      className="text-xs"
+                                      className="text-xs text-white"
+                                      style={{ backgroundColor: '#161819' }}
                                     >
                                       First Comment
                                     </Badge>
                                     {copiedItems[`${platform}-promo`] ? (
                                       <CheckCircle className="h-4 w-4 text-green-500" />
                                     ) : (
-                                      <Copy className="h-4 w-4 text-muted-foreground" />
+                                      <Copy className="h-4 w-4 text-gray-400" />
                                     )}
                                   </div>
                                 </div>
                               </CardHeader>
                               <CardContent className="pt-0">
-                                <p className="text-base whitespace-pre-line">
+                                <p className="text-base whitespace-pre-line text-white">
                                   {getPromotionalContent(platform).content}
                                 </p>
                               </CardContent>
@@ -532,7 +547,8 @@ export default function PlatformOptimizer() {
 
                           {/* Description */}
                           <Card
-                            className="cursor-pointer hover:bg-muted/50 transition-colors"
+                            className="cursor-pointer hover:bg-gray-700 transition-colors border text-white"
+                            style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                             onClick={() =>
                               copyToClipboard(
                                 platform === "youtube"
@@ -544,13 +560,14 @@ export default function PlatformOptimizer() {
                           >
                             <CardHeader className="pb-3">
                               <div className="flex items-center justify-between">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">
+                                <CardTitle className="text-sm font-medium text-gray-300">
                                   DESCRIPTION
                                 </CardTitle>
                                 <div className="flex items-center gap-2">
                                   <Badge
                                     variant="secondary"
-                                    className="text-xs"
+                                    className="text-xs text-white"
+                                    style={{ backgroundColor: '#161819' }}
                                   >
                                     {platform === "youtube"
                                       ? `${
@@ -561,13 +578,13 @@ export default function PlatformOptimizer() {
                                   {copiedItems[`${platform}-description`] ? (
                                     <CheckCircle className="h-4 w-4 text-green-500" />
                                   ) : (
-                                    <Copy className="h-4 w-4 text-muted-foreground" />
+                                    <Copy className="h-4 w-4 text-gray-400" />
                                   )}
                                 </div>
                               </div>
                             </CardHeader>
                             <CardContent className="pt-0">
-                              <p className="text-base whitespace-pre-line">
+                              <p className="text-base whitespace-pre-line text-white">
                                 {platform === "youtube"
                                   ? `${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`
                                   : content.description}

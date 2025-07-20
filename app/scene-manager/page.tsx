@@ -563,7 +563,7 @@ export default function SceneManagerPage() {
           )}
         </Button>
 
-        <span className="text-sm text-gray-600 min-w-[30px]">
+        <span className="text-sm text-white min-w-[30px]">
           {duration > 0
             ? `${Math.floor((duration - currentTime) / 60)}:${String(
                 Math.floor((duration - currentTime) % 60)
@@ -1386,16 +1386,16 @@ export default function SceneManagerPage() {
   const allImagesGenerated = scenes.every((scene) => scene.imageUrl);
 
   return (
-    <div className="bg-background">
+    <div className="bg-background" style={{ backgroundColor: 'transparent' }}>
       {/* Two Column Layout */}
-      <div className="flex h-[calc(100vh-120px)]">
+      <div className="flex">
         {/* Left Side: Scrollable Scenes */}
-        <div className="flex-1 overflow-y-auto p-6 border-r">
+        <div className="flex-1 overflow-y-auto p-6 border-r" style={{ borderColor: '#282A2B' }}>
           <div className="max-w-6xl m-auto">
             {/* Master Controls */}
-            <Card className="mb-4">
+            <Card className="mb-4 border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">
+                <CardTitle className="text-base text-white">
                   Master Controls - {scenes.length} scenes
                 </CardTitle>
               </CardHeader>
@@ -1404,8 +1404,9 @@ export default function SceneManagerPage() {
                   <Button
                     onClick={generateAllImages}
                     disabled={isGeneratingAllImages || allImagesGenerated}
-                    variant="outline"
-                    className="flex-1"
+                   variant="outline"
+                    className="flex-1 text-white hover:bg-black hover:cursor-pointer"
+                    style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                   >
                     {isGeneratingAllImages && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1420,7 +1421,8 @@ export default function SceneManagerPage() {
                     onClick={generateContinuousAudio}
                     disabled={isGeneratingContinuousAudio || !!continuousAudio}
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 text-white hover:bg-black hover:cursor-pointer"
+                    style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                   >
                     {isGeneratingContinuousAudio && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1437,8 +1439,9 @@ export default function SceneManagerPage() {
                     disabled={
                       isGeneratingAllImages || !scenes.some((s) => s.imageUrl)
                     }
-                    size="sm"
-                    className="flex-1"
+                    variant="outline"
+                    className="flex-1 text-white hover:bg-black hover:cursor-pointer"
+                    style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                   >
                     <Trash2 className="mr-1 h-3 w-3" />
                     Clear Images
@@ -1450,8 +1453,9 @@ export default function SceneManagerPage() {
                       (!scenes.some((s) => s.voiceUrl || s.imageUrl) &&
                         !continuousAudio)
                     }
-                    size="sm"
-                    className="flex-1"
+                    variant="outline"
+                    className="flex-1 text-white hover:bg-black hover:cursor-pointer"
+                    style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                   >
                     <RefreshCw className="mr-1 h-3 w-3" />
                     Reset All
@@ -1472,9 +1476,10 @@ export default function SceneManagerPage() {
                       <Button
                         onClick={generateContinuousAudio}
                         disabled={isGeneratingContinuousAudio}
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="h-6 px-2"
+                        className="h-8 w-8 p-0 text-white hover:bg-black hover:cursor-pointer"
+                        style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                       >
                         {isGeneratingContinuousAudio ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -1490,7 +1495,7 @@ export default function SceneManagerPage() {
                 {staleAudioAlert &&
                   (continuousAudio ||
                     scenes.some((scene) => scene.voiceUrl)) && (
-                    <div className="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-3 mb-3 rounded">
+                    <div className="border-l-4 text-orange-300 p-3 mb-3 rounded" style={{ backgroundColor: '#2A1F1A', borderColor: '#D97706' }}>
                       <div className="flex justify-between items-center">
                         <div className="flex">
                           <div>
@@ -1509,7 +1514,7 @@ export default function SceneManagerPage() {
                               saveStaleAudioState(scriptHash, false);
                             }
                           }}
-                          className="text-orange-500 hover:text-orange-700 ml-2"
+                          className="text-orange-400 hover:text-orange-300 ml-2"
                         >
                           ×
                         </button>
@@ -1522,11 +1527,11 @@ export default function SceneManagerPage() {
             {/* Individual Scenes - 3 Column Grid */}
             <div className="grid grid-cols-3 gap-3">
               {scenes.map((scene, index) => (
-                <Card key={scene.id}>
+                <Card key={scene.id} className="border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
                   <CardContent>
                     {/* Scene header */}
                     <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-base text-muted-foreground font-bold">
+                      <h3 className="text-base text-white font-bold">
                         Scene {scene.id}
                       </h3>
                     </div>
@@ -1558,7 +1563,8 @@ export default function SceneManagerPage() {
                               disabled={scene.isGeneratingImage}
                               variant="outline"
                               size="sm"
-                              className="absolute top-2 right-2 h-8 w-8 p-0 bg-white/90 hover:bg-white z-20"
+                              className="absolute top-2 right-2 h-8 w-8 p-0 text-white hover:bg-black hover:cursor-pointer z-20"
+                              style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                             >
                               {scene.isGeneratingImage ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1576,7 +1582,7 @@ export default function SceneManagerPage() {
                             </div>
                           </div>
                         ) : (
-                          <div className="aspect-[9/16] border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center text-muted-foreground relative">
+                          <div className="aspect-[9/16] border-2 border-dashed rounded-lg flex items-center justify-center text-gray-400 relative" style={{ borderColor: '#282A2B' }}>
                             {scene.isGeneratingImage ? (
                               <div className="text-center">
                                 <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
@@ -1592,7 +1598,8 @@ export default function SceneManagerPage() {
                               disabled={scene.isGeneratingImage}
                               variant="outline"
                               size="sm"
-                              className="absolute top-2 right-2 h-8 w-8 p-0 bg-white/90 hover:bg-white"
+                              className="absolute top-2 right-2 h-8 w-8 p-0 text-white hover:bg-black hover:cursor-pointer"
+                              style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                             >
                               {scene.isGeneratingImage ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1612,12 +1619,15 @@ export default function SceneManagerPage() {
                               ref={textareaRef}
                               value={editText}
                               onChange={(e) => setEditText(e.target.value)}
-                              className="w-full text-sm bg-muted/30 py-2 px-2 rounded-lg leading-relaxed resize-none border border-gray-300 focus:border-blue-500 focus:outline-none"
+                              className="w-full text-sm text-white py-2 px-2 rounded-lg leading-relaxed resize-none border focus:border-blue-500 focus:outline-none"
                               placeholder="Edit scene text..."
                               style={{
                                 minHeight: "80px",
                                 height: "auto",
                                 overflowY: "hidden",
+                                backgroundColor: '#212223',
+                                borderColor: '#282A2B',
+                                color: 'white'
                               }}
                               onInput={(e) => {
                                 const target = e.target as HTMLTextAreaElement;
@@ -1630,7 +1640,8 @@ export default function SceneManagerPage() {
                               <Button
                                 onClick={() => saveSceneText(scene.id)}
                                 size="sm"
-                                className="h-6 px-2 text-xs"
+                                className="h-6 px-2 text-xs text-white hover:bg-black hover:cursor-pointer"
+                                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                               >
                                 Save
                               </Button>
@@ -1638,7 +1649,8 @@ export default function SceneManagerPage() {
                                 onClick={cancelEditing}
                                 variant="outline"
                                 size="sm"
-                                className="h-6 px-2 text-xs"
+                                className="h-6 px-2 text-xs text-white hover:bg-black hover:cursor-pointer"
+                                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                               >
                                 Cancel
                               </Button>
@@ -1647,7 +1659,8 @@ export default function SceneManagerPage() {
                         ) : (
                           <div className="space-y-2">
                             <p
-                              className="text-sm bg-muted/30 py-2 px-2 rounded-lg leading-relaxed cursor-pointer hover:bg-muted/50 transition-colors"
+                              className="text-sm text-white py-2 px-2 rounded-lg leading-relaxed cursor-pointer hover:bg-gray-700 transition-colors"
+                              style={{ backgroundColor: '#212223' }}
                               onClick={() =>
                                 startEditingScene(scene.id, scene.text)
                               }
@@ -1662,7 +1675,8 @@ export default function SceneManagerPage() {
                               disabled={regeneratingSceneId === scene.id}
                               variant="outline"
                               size="sm"
-                              className="h-7 px-3 text-xs"
+                              className="h-7 px-3 text-xs text-white hover:bg-black hover:cursor-pointer"
+                              style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                             >
                               {regeneratingSceneId === scene.id ? (
                                 <>
@@ -1688,14 +1702,14 @@ export default function SceneManagerPage() {
         </div>
 
         {/* Right Side: Fixed Master Preview */}
-        <div className="w-96 p-6 bg-muted/30">
+        <div className="w-96 p-6" style={{ backgroundColor: '#161819' }}>
           <div className="sticky top-6">
             {(allVoicesGenerated || continuousAudio) &&
             allImagesGenerated &&
             scenes.length > 1 ? (
-              <Card>
+              <Card className="border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-white">
                     <Video className="h-5 w-5" />
                     {scriptData.title}
                   </CardTitle>
@@ -1711,7 +1725,7 @@ export default function SceneManagerPage() {
                     />
                     <label
                       htmlFor="include-text-overlays"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white"
                     >
                       Include text overlays in video
                     </label>
@@ -1805,36 +1819,36 @@ export default function SceneManagerPage() {
                 </CardContent>
               </Card>
             ) : (
-              <Card>
+              <Card className="border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
                 <CardContent className="text-center py-8">
-                  <Video className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-muted-foreground mb-2">
+                  <Video className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-300 mb-2">
                     Master Video Preview
                   </p>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-gray-400 mb-4">
                     Complete all scenes and audio to create your video
                   </p>
 
                   <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center text-white">
                       <span>Audio:</span>
                       <span
                         className={
                           continuousAudio || scenes.every((s) => s.voiceUrl)
-                            ? "text-green-600"
-                            : "text-orange-500"
+                            ? "text-green-400"
+                            : "text-orange-400"
                         }
                       >
                         {continuousAudio ? "✅ Done" : " ❌ Missing"}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center text-white">
                       <span>Images:</span>
                       <span
                         className={
                           scenes.every((s) => s.imageUrl)
-                            ? "text-green-600"
-                            : "text-orange-500"
+                            ? "text-green-400"
+                            : "text-orange-400"
                         }
                       >
                         {scenes.filter((s) => s.imageUrl).length} /{" "}
@@ -1844,7 +1858,7 @@ export default function SceneManagerPage() {
 
                     {!(continuousAudio || allVoicesGenerated) ||
                     !allImagesGenerated ? (
-                      <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded text-orange-700">
+                      <div className="mt-4 p-3 border rounded text-orange-300" style={{ backgroundColor: '#2A1F1A', borderColor: '#4A3A2A' }}>
                         <p className="text-xs font-medium mb-1">
                           Missing content detected
                         </p>
@@ -1872,10 +1886,10 @@ export default function SceneManagerPage() {
         open={selectedImageUrl !== null}
         onOpenChange={() => setSelectedImageUrl(null)}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] p-0">
+        <DialogContent className="max-w-2xl max-h-[90vh] p-0 border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
           <DialogHeader className="p-4 pb-2">
             <div className="flex items-center gap-3">
-              <DialogTitle>Scene {selectedImageScene}</DialogTitle>
+              <DialogTitle className="text-white">Scene {selectedImageScene}</DialogTitle>
               <Button
                 onClick={() => {
                   const sceneIndex = scenes.findIndex(
@@ -1893,6 +1907,8 @@ export default function SceneManagerPage() {
                 }
                 variant="outline"
                 size="sm"
+                className="text-white hover:bg-black hover:cursor-pointer"
+                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
               >
                 {selectedImageScene &&
                 scenes.find((s) => s.id === selectedImageScene)
@@ -1915,7 +1931,7 @@ export default function SceneManagerPage() {
                 alt={`Scene ${selectedImageScene}`}
                 className="w-full h-auto rounded max-h-[65vh] object-contain mb-3"
               />
-              <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded">
+              <div className="text-sm text-gray-300 p-3 rounded" style={{ backgroundColor: '#212223' }}>
                 {scenes.find((s) => s.id === selectedImageScene)?.text}
               </div>
             </div>
