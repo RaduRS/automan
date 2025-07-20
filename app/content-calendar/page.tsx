@@ -22,7 +22,7 @@ export default function ContentCalendarPage() {
             </div>
 
             {/* Controls */}
-            <div className="flex flex-col lg:flex-row gap-6 mb-8">
+            <div className="flex justify-between items-center mb-8">
               <BrandSelector />
               <PlatformSelector />
             </div>

@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Edit3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WeekNavigator } from "./WeekNavigator";
@@ -93,7 +94,7 @@ function TimeSlotCard({ date, timeSlot, entry }: TimeSlotCardProps) {
   return (
     <div
       className={cn(
-        "p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md text-white",
+        "p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md text-white min-h-[140px]",
         getStatusColor()
       )}
     >
@@ -207,6 +208,25 @@ function TimeSlotCard({ date, timeSlot, entry }: TimeSlotCardProps) {
   );
 }
 
+function TimeSlotCardSkeleton() {
+  return (
+    <div className="p-3 rounded-lg border-2 border-gray-600 bg-gray-700/50 h-[140px]">
+      <Skeleton className="h-4 w-16 mb-3 bg-gray-600" />
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Skeleton className="h-4 w-4 bg-gray-600" />
+          <Skeleton className="h-3 w-20 bg-gray-600" />
+        </div>
+        <div className="flex items-center space-x-2">
+          <Skeleton className="h-4 w-4 bg-gray-600" />
+          <Skeleton className="h-3 w-16 bg-gray-600" />
+        </div>
+        <Skeleton className="h-6 w-full bg-gray-600 mt-4" />
+      </div>
+    </div>
+  );
+}
+
 export function WeeklyCalendar() {
   const {
     selectedBrand,
@@ -238,9 +258,30 @@ export function WeeklyCalendar() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg text-gray-500">Loading calendar...</div>
-      </div>
+      <Card
+        className="border text-white"
+        style={{ backgroundColor: "#161819", borderColor: "#282A2B" }}
+      >
+        <CardContent className="p-4">
+          <div className="grid grid-cols-7 gap-4">
+            {Array.from({ length: 7 }, (_, index) => (
+              <div key={index} className="space-y-3">
+                <div className="text-center">
+                  <Skeleton className="h-5 w-20 mx-auto mb-1 bg-gray-600" />
+                  <Skeleton className="h-4 w-12 mx-auto bg-gray-600" />
+                </div>
+                <div className="space-y-4">
+                  {/* Show 2-3 skeleton time slots per day */}
+                  <TimeSlotCardSkeleton />
+                  <TimeSlotCardSkeleton />
+                  <TimeSlotCardSkeleton />
+                </div>
+              </div>
+            ))}
+          </div>
+          <WeekNavigator />
+        </CardContent>
+      </Card>
     );
   }
 
@@ -250,7 +291,7 @@ export function WeeklyCalendar() {
       style={{ backgroundColor: "#161819", borderColor: "#282A2B" }}
     >
       <CardContent className="p-4">
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-4">
           {weekDays.map((date, index) => {
             const dayType = getDayType(date);
             const timeSlots = getPostingTimes(
@@ -278,7 +319,7 @@ export function WeeklyCalendar() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {timeSlots.map((timeSlot) => {
                     const entry = dayEntries.find(
                       (e) => e.time_slot === timeSlot
