@@ -19,6 +19,7 @@ import {
   Lightbulb,
   CheckCircle2,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 interface JobStatus {
   id: string;
@@ -233,29 +234,31 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
   };
 
   return (
-    <div className="space-y-8 max-w-3xl mx-auto">
+    <div className="space-y-8 max-w-3xl mx-auto px-4 py-8">
       {/* Input Form */}
-      <Card className="border-2 shadow-lg">
+      <Card className="border shadow-lg text-white w-full" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
         <CardContent className="pt-6">
           <Tabs
             value={inputMode}
             onValueChange={(value) => setInputMode(value as "tiktok" | "text")}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-lg">
+            <TabsList className="grid w-full grid-cols-2 rounded-lg gap-2" style={{ backgroundColor: '#212223' }}>
               <TabsTrigger
                 value="tiktok"
-                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:text-white text-gray-500 whitespace-nowrap overflow-hidden rounded-md transition-all duration-200"
+                style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
               >
-                <Link className="w-4 h-4" />
-                TikTok URLs
+                <Link className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">TikTok URLs</span>
               </TabsTrigger>
               <TabsTrigger
                 value="text"
-                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:text-white text-gray-500 whitespace-nowrap overflow-hidden rounded-md transition-all duration-200"
+                style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
               >
-                <Type className="w-4 h-4" />
-                Text Input
+                <Type className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Text Input</span>
               </TabsTrigger>
             </TabsList>
 
@@ -265,7 +268,7 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                   <div className="space-y-2">
                     <Label
                       htmlFor="url1"
-                      className="text-sm font-medium flex items-center gap-2"
+                      className="text-sm font-medium flex items-center gap-2 text-white"
                     >
                       <div className="w-2 h-2 bg-blue-500 rounded-full" />
                       Primary TikTok URL *
@@ -280,14 +283,15 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                       placeholder="https://www.tiktok.com/@username/video/..."
                       disabled={isSubmitting || !!jobStatus}
                       required={inputMode === "tiktok"}
-                      className="h-11"
+                      className="h-11 text-white placeholder-gray-400 focus:border-blue-500"
+                      style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label
                       htmlFor="url2"
-                      className="text-sm font-medium flex items-center gap-2"
+                      className="text-sm font-medium flex items-center gap-2 text-gray-300"
                     >
                       <div className="w-2 h-2 bg-gray-400 rounded-full" />
                       Additional TikTok URL (Optional)
@@ -301,14 +305,15 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                       }
                       placeholder="https://www.tiktok.com/@username/video/..."
                       disabled={isSubmitting || !!jobStatus}
-                      className="h-11"
+                      className="h-11 text-white placeholder-gray-400 focus:border-blue-500"
+                      style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label
                       htmlFor="url3"
-                      className="text-sm font-medium flex items-center gap-2"
+                      className="text-sm font-medium flex items-center gap-2 text-gray-300"
                     >
                       <div className="w-2 h-2 bg-gray-400 rounded-full" />
                       Additional TikTok URL (Optional)
@@ -322,7 +327,8 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                       }
                       placeholder="https://www.tiktok.com/@username/video/..."
                       disabled={isSubmitting || !!jobStatus}
-                      className="h-11"
+                      className="h-11 text-white placeholder-gray-400 focus:border-blue-500"
+                      style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
                     />
                   </div>
                 </div>
@@ -333,7 +339,7 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                   <div className="flex items-center justify-between">
                     <Label
                       htmlFor="textInput"
-                      className="text-sm font-medium flex items-center gap-2"
+                      className="text-sm font-medium flex items-center gap-2 text-white"
                     >
                       <div className="w-2 h-2 bg-blue-500 rounded-full" />
                       Text Content *
@@ -343,10 +349,9 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                       variant="outline"
                       size="sm"
                       onClick={handleSuggestContent}
-                      disabled={
-                        isSuggestingContent || isSubmitting || !!jobStatus
-                      }
-                      className="h-9 px-3 text-xs"
+                      disabled={isSuggestingContent || isSubmitting || !!jobStatus}
+                      className="h-9 px-3 text-xs text-white hover:bg-gray-600"
+                      style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                     >
                       {isSuggestingContent ? (
                         <>
@@ -361,14 +366,15 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                       )}
                     </Button>
                   </div>
-                  <textarea
+                  <Textarea
                     id="textInput"
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
                     placeholder="Enter your text content here to generate a script, or click 'Suggest' for AI-generated ideas..."
                     disabled={isSubmitting || !!jobStatus}
                     required={inputMode === "text"}
-                    className="min-h-[140px] w-full rounded-lg border border-input bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                    className="min-h-[140px] w-full rounded-lg text-white placeholder-gray-400 focus:border-blue-500"
+                    style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
                   />
                 </div>
               </TabsContent>
@@ -377,7 +383,8 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                 <Button
                   type="submit"
                   disabled={isSubmitting || !!jobStatus}
-                  className="flex-1 h-11 text-base"
+                  className="flex-1 h-11 text-base text-white"
+                  style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                   size="lg"
                 >
                   {isSubmitting && (
@@ -395,7 +402,8 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                     type="button"
                     variant="outline"
                     onClick={handleReset}
-                    className="h-11"
+                    className="h-11 text-white hover:bg-gray-600"
+                    style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                   >
                     New Job
                   </Button>
@@ -408,7 +416,7 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
 
       {/* Error Display */}
       {error && (
-        <Alert variant="destructive" className="border-l-4 border-red-500">
+        <Alert variant="destructive" className="border-l-4 border-red-500 w-full">
           <XCircle className="h-4 w-4" />
           <AlertDescription className="font-medium">{error}</AlertDescription>
         </Alert>
@@ -416,7 +424,7 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
 
       {/* Job Status Display */}
       {jobStatus && (
-        <Card className="border-2">
+        <Card className="border text-white w-full" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
           <CardContent className="pt-6">
             {getCurrentStep() && (
               <div className="space-y-4">
@@ -430,7 +438,7 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                 </div>
                 <Progress
                   value={getCurrentStep()!.progress}
-                  className="w-full h-2"
+                  className="w-full h-2 bg-gray-700"
                 />
               </div>
             )}
@@ -466,12 +474,12 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                   )}
 
                 {/* Script Display */}
-                <div className="bg-muted/30 rounded-lg p-4 max-h-48 overflow-y-auto">
-                  <div className="text-xs text-muted-foreground font-medium mb-2 flex items-center gap-2">
+                <div className="bg-gray-700 rounded-lg p-4 max-h-48 overflow-y-auto" style={{ borderColor: '#282A2B' }}>
+                  <div className="text-xs text-gray-300 font-medium mb-2 flex items-center gap-2">
                     <FileText className="h-3 w-3" />
                     SCRIPT
                   </div>
-                  <pre className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">
+                  <pre className="text-sm whitespace-pre-wrap text-white leading-relaxed">
                     {jobStatus.openai_script}
                   </pre>
                 </div>
@@ -481,7 +489,8 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                   <div className="pt-4">
                     <Button
                       onClick={() => (window.location.href = "/scene-manager")}
-                      className="w-full h-11 text-base"
+                      className="w-full h-11 text-base text-white"
+                      style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
                       size="lg"
                     >
                       <FileText className="h-4 w-4 mr-2" />
