@@ -24,6 +24,7 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { type VariantProps } from "class-variance-authority";
 
@@ -279,6 +280,9 @@ function SkeletonRow() {
           <Skeleton className="h-4 w-20" style={{ backgroundColor: '#282A2B' }} />
         </div>
       </td>
+      <td className="p-3 text-center">
+        <Skeleton className="h-5 w-5 rounded" style={{ backgroundColor: '#282A2B' }} />
+      </td>
     </tr>
   );
 }
@@ -307,6 +311,8 @@ export function JobsTable() {
     hasNextPage: false,
     hasPreviousPage: false,
   });
+  const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchJobs();
@@ -369,128 +375,204 @@ export function JobsTable() {
     }
   }
 
+  async function handleDeleteJob(jobId: string) {
+    setIsDeleting(true);
+    try {
+      const response = await fetch("/api/delete-job", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jobId }),
+      });
+
+      if (response.ok) {
+        // Close delete modal and refresh jobs
+        setDeleteJobId(null);
+        fetchJobs();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to delete job");
+      }
+    } catch (error) {
+      setError(`Failed to delete job: ${error}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
-    <Card className="border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
-      <CardHeader>
-        <CardTitle className="text-white">Jobs ({pagination.totalJobs})</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-600">
-                  <th className="text-left p-3 font-medium text-gray-300">Title</th>
-                  <th className="text-left p-3 font-medium text-gray-300">Brand</th>
-                  <th className="text-left p-3 font-medium text-gray-300">Created</th>
-                  <th className="text-left p-3 font-medium text-gray-300">Status</th>
-                  <th className="text-center p-3 font-medium text-gray-300">Script</th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* Always show exactly 10 rows */}
-                {Array.from({ length: 10 }, (_, index) => {
-                  const job = jobs[index];
-                  
-                  if (loading || !job) {
-                    return <SkeletonRow key={`skeleton-${index}`} />;
-                  }
+    <>
+      <Card className="border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
+        <CardHeader>
+          <CardTitle className="text-white">Jobs ({pagination.totalJobs})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-600">
+                    <th className="text-left p-3 font-medium text-gray-300">Title</th>
+                    <th className="text-left p-3 font-medium text-gray-300">Brand</th>
+                    <th className="text-left p-3 font-medium text-gray-300">Created</th>
+                    <th className="text-left p-3 font-medium text-gray-300">Status</th>
+                    <th className="text-center p-3 font-medium text-gray-300">Script</th>
+                    <th className="text-center p-3 font-medium text-gray-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Show skeleton rows only when loading or when we have fewer jobs than expected */}
+                  {Array.from({ length: 10 }, (_, index) => {
+                    const job = jobs[index];
+                    
+                    // Show skeleton if loading OR if we're on the last page and this index doesn't have a job
+                    if (loading || (!job && (pagination.hasNextPage || currentPage === 1))) {
+                      return <SkeletonRow key={`skeleton-${index}`} />;
+                    }
 
-                  return (
-                    <tr
-                      key={job.id}
-                      className="border-b border-gray-600 hover:bg-gray-700 transition-colors"
-                    >
-                      <td className="p-3">
-                        <div className="font-medium text-sm">
-                          {job.job_title && job.job_title.trim() 
-                            ? job.job_title 
-                            : "Untitled Job"}
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        {(() => {
-                          const brand = (job.brand as BrandName) || "peakshifts";
-                          const brandConfig = getBrandConfig(brand);
-                          const Icon = brandIcons[brand];
-                          return (
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4" />
-                              <span className="text-sm">{brandConfig.name}</span>
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      <td className="p-3 text-sm text-gray-400">
-                        {formatDate(job.created_at)}
-                      </td>
-                      <td className="p-3">
-                        {getStatusBadge(job.status)}
-                        {job.error_message && (
-                          <div className="text-xs text-red-400 mt-1">
-                            {job.error_message.substring(0, 50)}...
+                    // Don't show anything if we're on the last page and there's no job for this index
+                    if (!job) {
+                      return null;
+                    }
+
+                    return (
+                      <tr
+                        key={job.id}
+                        className="border-b border-gray-600 hover:bg-gray-700 transition-colors"
+                      >
+                        <td className="p-3">
+                          <div className="font-medium text-sm">
+                            {job.job_title && job.job_title.trim() 
+                              ? job.job_title 
+                              : "Untitled Job"}
                           </div>
-                        )}
-                      </td>
-                      <td className="p-3 text-center">
-                        <ScriptViewer job={job} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="p-3">
+                          {(() => {
+                            const brand = (job.brand as BrandName) || "peakshifts";
+                            const brandConfig = getBrandConfig(brand);
+                            const Icon = brandIcons[brand];
+                            return (
+                              <div className="flex items-center gap-2">
+                                <Icon className="h-4 w-4" />
+                                <span className="text-sm">{brandConfig.name}</span>
+                              </div>
+                            );
+                          })()}
+                        </td>
+                        <td className="p-3 text-sm text-gray-400">
+                          {formatDate(job.created_at)}
+                        </td>
+                        <td className="p-3">
+                          {getStatusBadge(job.status)}
+                          {job.error_message && (
+                            <div className="text-xs text-red-400 mt-1">
+                              {job.error_message.substring(0, 50)}...
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 text-center">
+                          <ScriptViewer job={job} />
+                        </td>
+                        <td className="p-3 text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteJobId(job.id)}
+                            className="h-auto p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Show error message if there's an error */}
+            {error && (
+              <div className="text-center py-4 text-red-400">
+                Error: {error}
+              </div>
+            )}
+
+            {/* Show "no jobs" message only when not loading and no jobs exist */}
+            {!loading && !error && pagination.totalJobs === 0 && (
+              <div className="text-center py-8 text-gray-400">
+                No jobs found. <br />
+                <Button variant="link" onClick={() => (window.location.href = "/")} className="text-blue-400 hover:text-blue-300">
+                  Create your first job
+                </Button>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {!loading && !error && pagination.totalPages > 1 && (
+              <div className="flex justify-center items-center gap-4 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={!pagination.hasPreviousPage}
+                  className="text-white border-gray-600 hover:bg-gray-700"
+                  style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-400">
+                  Page {pagination.currentPage} of {pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={!pagination.hasNextPage}
+                  className="text-white border-gray-600 hover:bg-gray-700"
+                  style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </>
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={!!deleteJobId} onOpenChange={() => setDeleteJobId(null)}>
+        <DialogContent className="sm:max-w-md" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
+          <DialogHeader>
+            <DialogTitle className="text-white">Delete Job</DialogTitle>
+            <DialogDescription className="text-gray-300">
+              Are you sure you want to delete this job? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteJobId(null)}
+              disabled={isDeleting}
+              className="text-white border-gray-600 hover:bg-gray-700"
+              style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteJobId && handleDeleteJob(deleteJobId)}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? "Deleting..." : "Yes, Delete"}
+            </Button>
           </div>
-
-          {/* Show error message if there's an error */}
-          {error && (
-            <div className="text-center py-4 text-red-400">
-              Error: {error}
-            </div>
-          )}
-
-          {/* Show "no jobs" message only when not loading and no jobs exist */}
-          {!loading && !error && pagination.totalJobs === 0 && (
-            <div className="text-center py-8 text-gray-400">
-              No jobs found. <br />
-              <Button variant="link" onClick={() => (window.location.href = "/")} className="text-blue-400 hover:text-blue-300">
-                Create your first job
-              </Button>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {!loading && !error && pagination.totalPages > 1 && (
-            <div className="flex justify-center items-center gap-4 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={!pagination.hasPreviousPage}
-                className="text-white border-gray-600 hover:bg-gray-700"
-                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <span className="text-sm text-gray-400">
-                Page {pagination.currentPage} of {pagination.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={!pagination.hasNextPage}
-                className="text-white border-gray-600 hover:bg-gray-700"
-                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          )}
-        </>
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
