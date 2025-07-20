@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Settings, BarChart3, Home, Film } from "lucide-react";
+import { ImageIcon, Settings, BarChart3, Home, Film, Calendar } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -20,6 +20,12 @@ export function Navbar() {
       href: "/scene-manager",
       icon: Film,
       description: "Manage scenes and create videos",
+    },
+    {
+      name: "Content Calendar",
+      href: "/content-calendar",
+      icon: Calendar,
+      description: "Track downloads and posting schedule",
     },
     {
       name: "Platform Optimizer",
