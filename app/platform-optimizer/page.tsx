@@ -44,6 +44,13 @@ interface LatestScript {
   created_at: string;
 }
 
+interface LatestScriptsResponse {
+  success: boolean;
+  scripts: LatestScript[];
+  hasMore: boolean;
+  total: number;
+}
+
 export default function PlatformOptimizer() {
   const [script, setScript] = useState("");
   const [title, setTitle] = useState("");
@@ -57,28 +64,50 @@ export default function PlatformOptimizer() {
   );
   const [latestScripts, setLatestScripts] = useState<LatestScript[]>([]);
   const [isLoadingScripts, setIsLoadingScripts] = useState(false);
+  const [isLoadingMoreScripts, setIsLoadingMoreScripts] = useState(false);
+  const [hasMoreScripts, setHasMoreScripts] = useState(false);
+  const [scriptsOffset, setScriptsOffset] = useState(0);
 
   // Fetch latest scripts on component mount
   useEffect(() => {
     fetchLatestScripts();
   }, []);
 
-  const fetchLatestScripts = async () => {
-    setIsLoadingScripts(true);
+  const fetchLatestScripts = async (offset = 0, append = false) => {
+    if (append) {
+      setIsLoadingMoreScripts(true);
+    } else {
+      setIsLoadingScripts(true);
+    }
+    
     try {
-      const response = await fetch("/api/latest-scripts");
-      const data = await response.json();
+      const response = await fetch(`/api/latest-scripts?offset=${offset}&limit=5`);
+      const data: LatestScriptsResponse = await response.json();
 
       if (data.success) {
-        setLatestScripts(data.scripts);
+        if (append) {
+          setLatestScripts(prev => [...prev, ...data.scripts]);
+        } else {
+          setLatestScripts(data.scripts);
+        }
+        setHasMoreScripts(data.hasMore);
+        setScriptsOffset(offset + 5);
       } else {
-        console.error("Failed to fetch latest scripts:", data.error);
+        console.error("Failed to fetch latest scripts");
       }
     } catch (error) {
       console.error("Error fetching latest scripts:", error);
     } finally {
-      setIsLoadingScripts(false);
+      if (append) {
+        setIsLoadingMoreScripts(false);
+      } else {
+        setIsLoadingScripts(false);
+      }
     }
+  };
+
+  const loadMoreScripts = () => {
+    fetchLatestScripts(scriptsOffset, true);
   };
 
   const handleScriptSelect = (scriptId: string) => {
@@ -244,7 +273,10 @@ export default function PlatformOptimizer() {
                     }
                   />
                 </SelectTrigger>
-                <SelectContent style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
+                <SelectContent 
+                  style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
+                  className="max-h-80 overflow-y-auto"
+                >
                   {latestScripts.map((script) => (
                     <SelectItem key={script.id} value={script.id} className="text-white hover:bg-gray-700">
                       <div className="flex flex-col">
@@ -262,6 +294,30 @@ export default function PlatformOptimizer() {
                     <SelectItem value="no-scripts" disabled className="text-gray-400">
                       No scripts found
                     </SelectItem>
+                  )}
+                  {hasMoreScripts && (
+                    <div className="px-2 py-1 border-t border-gray-600">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          loadMoreScripts();
+                        }}
+                        disabled={isLoadingMoreScripts}
+                        className="w-full text-blue-400 hover:text-blue-300 hover:bg-gray-700 text-xs"
+                      >
+                        {isLoadingMoreScripts ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          "Load 5 more"
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </SelectContent>
               </Select>

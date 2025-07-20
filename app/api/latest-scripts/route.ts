@@ -10,11 +10,15 @@ interface LatestScript {
   created_at: string;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    console.log("Fetching latest 5 scripts from database...");
+    const { searchParams } = new URL(request.url);
+    const offset = parseInt(searchParams.get("offset") || "0");
+    const limit = parseInt(searchParams.get("limit") || "5");
 
-    // Fetch the latest 5 jobs that have generated scripts
+    console.log(`Fetching ${limit} scripts from database with offset ${offset}...`);
+
+    // Fetch jobs with pagination
     const { data: jobs, error } = await supabase
       .from("jobs")
       .select(
@@ -23,7 +27,7 @@ export async function GET() {
       .not("openai_script", "is", null)
       .not("job_title", "is", null)
       .order("created_at", { ascending: false })
-      .limit(5);
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error("Database error fetching latest scripts:", error);
@@ -43,11 +47,22 @@ export async function GET() {
       created_at: job.created_at,
     }));
 
-    console.log(`✅ Found ${latestScripts.length} latest scripts`);
+    // Check if there are more scripts available
+    const { count: totalCount } = await supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .not("openai_script", "is", null)
+      .not("job_title", "is", null);
+
+    const hasMore = totalCount ? (offset + limit) < totalCount : false;
+
+    console.log(`✅ Found ${latestScripts.length} scripts, hasMore: ${hasMore}`);
 
     return NextResponse.json({
       success: true,
       scripts: latestScripts,
+      hasMore,
+      total: totalCount || 0,
     });
   } catch (error) {
     console.error("Latest scripts API error:", error);
