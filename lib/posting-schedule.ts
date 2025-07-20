@@ -24,14 +24,14 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 3,
       "best_times": {
         "weekday": [
-          "9:00 PM–11:00 PM",
-          "6:00 AM–8:00 AM",
-          "12:00 PM–2:00 PM"
+          "07:00",  // Middle of 6:00 AM–8:00 AM
+          "13:00",  // Middle of 12:00 PM–2:00 PM
+          "22:00"   // Middle of 9:00 PM–11:00 PM
         ],
         "weekend": [
-          "7:00 AM–9:00 AM",
-          "1:00 PM–3:00 PM",
-          "9:00 PM–12:00 AM"
+          "08:00",  // Middle of 7:00 AM–9:00 AM
+          "14:00",  // Middle of 1:00 PM–3:00 PM
+          "22:30"   // Middle of 9:00 PM–12:00 AM
         ]
       }
     },
@@ -39,14 +39,14 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 3,
       "best_times": {
         "weekday": [
-          "7:00 AM–9:00 AM",
-          "12:00 PM–2:00 PM",
-          "6:00 PM–8:00 PM"
+          "08:00",  // Middle of 7:00 AM–9:00 AM
+          "13:00",  // Middle of 12:00 PM–2:00 PM
+          "19:00"   // Middle of 6:00 PM–8:00 PM
         ],
         "weekend": [
-          "11:00 AM–1:00 PM",
-          "3:00 PM–5:00 PM",
-          "7:00 PM–9:00 PM"
+          "12:00",  // Middle of 11:00 AM–1:00 PM
+          "16:00",  // Middle of 3:00 PM–5:00 PM
+          "20:00"   // Middle of 7:00 PM–9:00 PM
         ]
       }
     },
@@ -54,14 +54,14 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 3,
       "best_times": {
         "weekday": [
-          "7:00 AM–9:00 AM",
-          "1:00 PM–3:00 PM",
-          "8:00 PM–10:00 PM"
+          "08:00",  // Middle of 7:00 AM–9:00 AM
+          "14:00",  // Middle of 1:00 PM–3:00 PM
+          "21:00"   // Middle of 8:00 PM–10:00 PM
         ],
         "weekend": [
-          "9:00 AM–11:00 AM",
-          "2:00 PM–4:00 PM",
-          "8:00 PM–10:00 PM"
+          "10:00",  // Middle of 9:00 AM–11:00 AM
+          "15:00",  // Middle of 2:00 PM–4:00 PM
+          "21:00"   // Middle of 8:00 PM–10:00 PM
         ]
       }
     },
@@ -69,14 +69,14 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 3,
       "best_times": {
         "weekday": [
-          "6:00 AM–9:00 AM",
-          "12:00 PM–2:00 PM",
-          "5:00 PM–7:00 PM"
+          "07:30",  // Middle of 6:00 AM–9:00 AM
+          "13:00",  // Middle of 12:00 PM–2:00 PM
+          "18:00"   // Middle of 5:00 PM–7:00 PM
         ],
         "weekend": [
-          "9:00 AM–12:00 PM",
-          "4:00 PM–6:00 PM",
-          "7:00 PM–8:00 PM"
+          "10:30",  // Middle of 9:00 AM–12:00 PM
+          "17:00",  // Middle of 4:00 PM–6:00 PM
+          "19:30"   // Middle of 7:00 PM–8:00 PM
         ]
       }
     }
@@ -86,14 +86,14 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 3,
       "best_times": {
         "weekday": [
-          "6:00 AM–8:00 AM",
-          "8:00 PM–10:00 PM",
-          "12:00 PM–1:00 PM"
+          "07:00",  // Middle of 6:00 AM–8:00 AM
+          "12:30",  // Middle of 12:00 PM–1:00 PM
+          "21:00"   // Middle of 8:00 PM–10:00 PM
         ],
         "weekend": [
-          "7:00 AM–9:00 AM",
-          "1:00 PM–3:00 PM",
-          "9:00 PM–11:00 PM"
+          "08:00",  // Middle of 7:00 AM–9:00 AM
+          "14:00",  // Middle of 1:00 PM–3:00 PM
+          "22:00"   // Middle of 9:00 PM–11:00 PM
         ]
       }
     },
@@ -101,14 +101,14 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 3,
       "best_times": {
         "weekday": [
-          "8:00 AM–10:00 AM",
-          "12:00 PM–3:00 PM",
-          "4:00 PM–5:00 PM"
+          "09:00",  // Middle of 8:00 AM–10:00 AM
+          "13:30",  // Middle of 12:00 PM–3:00 PM
+          "16:30"   // Middle of 4:00 PM–5:00 PM
         ],
         "weekend": [
-          "11:00 AM–2:00 PM",
-          "4:00 PM–6:00 PM",
-          "8:00 PM–9:00 PM"
+          "12:30",  // Middle of 11:00 AM–2:00 PM
+          "17:00",  // Middle of 4:00 PM–6:00 PM
+          "20:30"   // Middle of 8:00 PM–9:00 PM
         ]
       }
     },
@@ -116,14 +116,14 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 3,
       "best_times": {
         "weekday": [
-          "8:00 AM–11:00 AM",
-          "2:00 PM–4:00 PM",
-          "6:00 PM–7:00 PM"
+          "09:30",  // Middle of 8:00 AM–11:00 AM
+          "15:00",  // Middle of 2:00 PM–4:00 PM
+          "18:30"   // Middle of 6:00 PM–7:00 PM
         ],
         "weekend": [
-          "10:00 AM–1:00 PM",
-          "3:00 PM–5:00 PM",
-          "7:00 PM–9:00 PM"
+          "11:30",  // Middle of 10:00 AM–1:00 PM
+          "16:00",  // Middle of 3:00 PM–5:00 PM
+          "20:00"   // Middle of 7:00 PM–9:00 PM
         ]
       }
     },
@@ -131,14 +131,14 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 3,
       "best_times": {
         "weekday": [
-          "7:00 AM–10:00 AM",
-          "12:00 PM–2:00 PM",
-          "4:00 PM–6:00 PM"
+          "08:30",  // Middle of 7:00 AM–10:00 AM
+          "13:00",  // Middle of 12:00 PM–2:00 PM
+          "17:00"   // Middle of 4:00 PM–6:00 PM
         ],
         "weekend": [
-          "9:00 AM–12:00 PM",
-          "5:00 PM–7:00 PM",
-          "8:00 PM–9:00 PM"
+          "10:30",  // Middle of 9:00 AM–12:00 PM
+          "18:00",  // Middle of 5:00 PM–7:00 PM
+          "20:30"   // Middle of 8:00 PM–9:00 PM
         ]
       }
     }
@@ -148,12 +148,12 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 2,
       "best_times": {
         "weekday": [
-          "10:00 PM–1:00 AM",
-          "7:00 AM–9:00 AM"
+          "08:00",  // Middle of 7:00 AM–9:00 AM
+          "23:30"   // Middle of 10:00 PM–1:00 AM
         ],
         "weekend": [
-          "10:00 PM–1:00 AM",
-          "8:00 AM–10:00 AM"
+          "09:00",  // Middle of 8:00 AM–10:00 AM
+          "23:30"   // Middle of 10:00 PM–1:00 AM
         ]
       }
     },
@@ -161,12 +161,12 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 2,
       "best_times": {
         "weekday": [
-          "7:00 PM–10:00 PM",
-          "12:00 PM–2:00 PM"
+          "13:00",  // Middle of 12:00 PM–2:00 PM
+          "20:30"   // Middle of 7:00 PM–10:00 PM
         ],
         "weekend": [
-          "12:00 PM–3:00 PM",
-          "7:00 PM–10:00 PM"
+          "13:30",  // Middle of 12:00 PM–3:00 PM
+          "20:30"   // Middle of 7:00 PM–10:00 PM
         ]
       }
     },
@@ -174,12 +174,12 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 2,
       "best_times": {
         "weekday": [
-          "7:00 AM–9:00 AM",
-          "8:00 PM–10:00 PM"
+          "08:00",  // Middle of 7:00 AM–9:00 AM
+          "21:00"   // Middle of 8:00 PM–10:00 PM
         ],
         "weekend": [
-          "10:00 AM–12:00 PM",
-          "8:00 PM–10:00 PM"
+          "11:00",  // Middle of 10:00 AM–12:00 PM
+          "21:00"   // Middle of 8:00 PM–10:00 PM
         ]
       }
     },
@@ -187,12 +187,12 @@ export const POSTING_SCHEDULE: ScheduleConfig = {
       "max_posts_per_day": 2,
       "best_times": {
         "weekday": [
-          "7:00 AM–9:00 AM",
-          "6:00 PM–8:00 PM"
+          "08:00",  // Middle of 7:00 AM–9:00 AM
+          "19:00"   // Middle of 6:00 PM–8:00 PM
         ],
         "weekend": [
-          "9:00 AM–11:00 AM",
-          "6:00 PM–8:00 PM"
+          "10:00",  // Middle of 9:00 AM–11:00 AM
+          "19:00"   // Middle of 6:00 PM–8:00 PM
         ]
       }
     }
