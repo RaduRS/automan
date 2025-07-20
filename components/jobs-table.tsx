@@ -6,6 +6,7 @@ import { getBrandConfig, type BrandName } from "@/lib/brand-config";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge, badgeVariants } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -15,38 +16,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  Instagram,
-  Youtube,
-  Twitter,
   FileText,
   Eye,
   Zap,
   Cloud,
   Sparkles,
   Heart,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { type VariantProps } from "class-variance-authority";
-
-// Platform icons mapping
-const platformIcons = {
-  instagram: Instagram,
-  facebook: () => (
-    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-    </svg>
-  ),
-  tiktok: () => (
-    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-      <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
-    </svg>
-  ),
-  youtube: Youtube,
-  x: Twitter,
-};
 
 // Brand icons mapping
 const brandIcons = {
@@ -55,70 +34,6 @@ const brandIcons = {
   lorespark: Sparkles,
   heartbeats: Heart,
 };
-
-interface StatusFilterProps {
-  currentFilter: string;
-  onFilterChange: (filter: string) => void;
-}
-
-function StatusFilter({ currentFilter, onFilterChange }: StatusFilterProps) {
-  const filters = [
-    { key: "all", label: "All" },
-    { key: "scheduled_to_socialbee", label: "Scheduled" },
-    { key: "error", label: "Failed" },
-    { key: "in_progress", label: "In Progress" },
-  ];
-
-  return (
-    <div className="flex gap-2">
-      {filters.map((filter) => (
-        <Button
-          key={filter.key}
-          variant={currentFilter === filter.key ? "default" : "outline"}
-          size="sm"
-          onClick={() => onFilterChange(filter.key)}
-        >
-          {filter.label}
-        </Button>
-      ))}
-    </div>
-  );
-}
-
-interface PlatformStatusProps {
-  platform: keyof typeof platformIcons;
-  posted: boolean;
-  scheduled?: boolean;
-}
-
-function PlatformStatus({
-  platform,
-  posted,
-  scheduled = false,
-}: PlatformStatusProps) {
-  const Icon = platformIcons[platform];
-
-  let statusIcon;
-  let statusColor;
-
-  if (posted) {
-    statusIcon = <CheckCircle className="w-3 h-3" />;
-    statusColor = "text-green-500";
-  } else if (scheduled) {
-    statusIcon = <Clock className="w-3 h-3" />;
-    statusColor = "text-yellow-500";
-  } else {
-    statusIcon = <XCircle className="w-3 h-3" />;
-    statusColor = "text-red-500";
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <Icon />
-      <span className={cn("text-xs", statusColor)}>{statusIcon}</span>
-    </div>
-  );
-}
 
 function getStatusBadge(status: Job["status"]) {
   const statusConfig: Record<
@@ -340,186 +255,241 @@ function formatDate(dateString: string) {
   });
 }
 
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-gray-600">
+      <td className="p-3">
+        <Skeleton className="h-6 w-40" style={{ backgroundColor: '#282A2B' }} />
+      </td>
+      <td className="p-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-5 rounded" style={{ backgroundColor: '#282A2B' }} />
+          <Skeleton className="h-5 w-24" style={{ backgroundColor: '#282A2B' }} />
+        </div>
+      </td>
+      <td className="p-3">
+        <Skeleton className="h-5 w-20" style={{ backgroundColor: '#282A2B' }} />
+      </td>
+      <td className="p-3">
+        <Skeleton className="h-7 w-20 rounded-full" style={{ backgroundColor: '#282A2B' }} />
+      </td>
+      <td className="p-3 text-center">
+        <div className="flex flex-col items-center gap-1">
+          <Skeleton className="h-5 w-5 rounded" style={{ backgroundColor: '#282A2B' }} />
+          <Skeleton className="h-4 w-20" style={{ backgroundColor: '#282A2B' }} />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+interface JobsResponse {
+  success: boolean;
+  jobs: Job[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalJobs: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
 export function JobsTable() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalJobs: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  });
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [currentPage]);
 
   async function fetchJobs() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const response = await fetch(`/api/jobs?page=${currentPage}&limit=10`);
 
-      if (error) throw error;
-      setJobs(data || []);
+      if (!response.ok) {
+        throw new Error("Failed to fetch jobs");
+      }
+
+      const data: JobsResponse = await response.json();
+
+      if (data.success) {
+        setJobs(data.jobs || []);
+        setPagination(data.pagination);
+      } else {
+        throw new Error("Failed to fetch jobs");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch jobs");
+      // Fallback to direct Supabase query if API doesn't exist yet
+      try {
+        const { data, error } = await supabase
+          .from("jobs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range((currentPage - 1) * 10, currentPage * 10 - 1);
+
+        if (error) throw error;
+
+        // Get total count for pagination
+        const { count } = await supabase
+          .from("jobs")
+          .select("*", { count: "exact", head: true });
+
+        const totalPages = Math.ceil((count || 0) / 10);
+
+        setJobs(data || []);
+        setPagination({
+          currentPage,
+          totalPages,
+          totalJobs: count || 0,
+          hasNextPage: currentPage < totalPages,
+          hasPreviousPage: currentPage > 1,
+        });
+        setError(null);
+      } catch (fallbackErr) {
+        setError(
+          fallbackErr instanceof Error
+            ? fallbackErr.message
+            : "Failed to fetch jobs"
+        );
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  const filteredJobs = jobs.filter((job) => {
-    if (statusFilter === "all") return true;
-    if (statusFilter === "scheduled_to_socialbee")
-      return job.status === "scheduled_to_socialbee";
-    if (statusFilter === "error") return job.status === "error";
-    if (statusFilter === "in_progress") {
-      return !["scheduled_to_socialbee", "error"].includes(job.status);
-    }
-    return true;
-  });
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-8">
-          <div className="text-center text-muted-foreground">
-            Loading jobs...
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="p-8">
-          <div className="text-center text-red-500">Error: {error}</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
+    <Card className="border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>Jobs ({filteredJobs.length})</CardTitle>
-          <StatusFilter
-            currentFilter={statusFilter}
-            onFilterChange={setStatusFilter}
-          />
-        </div>
+        <CardTitle className="text-white">Jobs ({pagination.totalJobs})</CardTitle>
       </CardHeader>
       <CardContent>
-        {filteredJobs.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No jobs found. <br />
-            <Button variant="link" onClick={() => (window.location.href = "/")}>
-              Create your first job
-            </Button>
-          </div>
-        ) : (
+        <>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-medium">Title / Job ID</th>
-                  <th className="text-left p-3 font-medium">Brand</th>
-                  <th className="text-left p-3 font-medium">Created</th>
-                  <th className="text-left p-3 font-medium">Status</th>
-                  <th className="text-center p-3 font-medium">Script</th>
-                  <th className="text-center p-3 font-medium">Instagram</th>
-                  <th className="text-center p-3 font-medium">Facebook</th>
-                  <th className="text-center p-3 font-medium">TikTok</th>
-                  <th className="text-center p-3 font-medium">YouTube</th>
-                  <th className="text-center p-3 font-medium">X</th>
+                <tr className="border-b border-gray-600">
+                  <th className="text-left p-3 font-medium text-gray-300">Title</th>
+                  <th className="text-left p-3 font-medium text-gray-300">Brand</th>
+                  <th className="text-left p-3 font-medium text-gray-300">Created</th>
+                  <th className="text-left p-3 font-medium text-gray-300">Status</th>
+                  <th className="text-center p-3 font-medium text-gray-300">Script</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredJobs.map((job) => (
-                  <tr
-                    key={job.id}
-                    className="border-b hover:bg-muted/50 transition-colors"
-                  >
-                    <td className="p-3">
-                      {job.job_title && job.job_title.trim() && (
-                        <div className="font-medium text-sm mb-1">
-                          {job.job_title}
+                {/* Always show exactly 10 rows */}
+                {Array.from({ length: 10 }, (_, index) => {
+                  const job = jobs[index];
+                  
+                  if (loading || !job) {
+                    return <SkeletonRow key={`skeleton-${index}`} />;
+                  }
+
+                  return (
+                    <tr
+                      key={job.id}
+                      className="border-b border-gray-600 hover:bg-gray-700 transition-colors"
+                    >
+                      <td className="p-3">
+                        <div className="font-medium text-sm">
+                          {job.job_title && job.job_title.trim() 
+                            ? job.job_title 
+                            : "Untitled Job"}
                         </div>
-                      )}
-                      <div className="font-mono text-xs text-muted-foreground">
-                        {job.id.slice(0, 8)}...
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      {(() => {
-                        const brand = (job.brand as BrandName) || "peakshifts";
-                        const brandConfig = getBrandConfig(brand);
-                        const Icon = brandIcons[brand];
-                        return (
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4" />
-                            <span className="text-sm">{brandConfig.name}</span>
+                      </td>
+                      <td className="p-3">
+                        {(() => {
+                          const brand = (job.brand as BrandName) || "peakshifts";
+                          const brandConfig = getBrandConfig(brand);
+                          const Icon = brandIcons[brand];
+                          return (
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4" />
+                              <span className="text-sm">{brandConfig.name}</span>
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td className="p-3 text-sm text-gray-400">
+                        {formatDate(job.created_at)}
+                      </td>
+                      <td className="p-3">
+                        {getStatusBadge(job.status)}
+                        {job.error_message && (
+                          <div className="text-xs text-red-400 mt-1">
+                            {job.error_message.substring(0, 50)}...
                           </div>
-                        );
-                      })()}
-                    </td>
-                    <td className="p-3 text-sm text-muted-foreground">
-                      {formatDate(job.created_at)}
-                    </td>
-                    <td className="p-3">
-                      {getStatusBadge(job.status)}
-                      {job.error_message && (
-                        <div className="text-xs text-red-500 mt-1">
-                          {job.error_message.substring(0, 50)}...
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-3 text-center">
-                      <ScriptViewer job={job} />
-                    </td>
-                    <td className="p-3 text-center">
-                      <PlatformStatus
-                        platform="instagram"
-                        posted={job.instagram_posted}
-                        scheduled={job.status === "scheduled_to_socialbee"}
-                      />
-                    </td>
-                    <td className="p-3 text-center">
-                      <PlatformStatus
-                        platform="facebook"
-                        posted={job.facebook_posted}
-                        scheduled={job.status === "scheduled_to_socialbee"}
-                      />
-                    </td>
-                    <td className="p-3 text-center">
-                      <PlatformStatus
-                        platform="tiktok"
-                        posted={job.tiktok_posted}
-                        scheduled={job.status === "scheduled_to_socialbee"}
-                      />
-                    </td>
-                    <td className="p-3 text-center">
-                      <PlatformStatus
-                        platform="youtube"
-                        posted={job.youtube_posted}
-                        scheduled={job.status === "scheduled_to_socialbee"}
-                      />
-                    </td>
-                    <td className="p-3 text-center">
-                      <PlatformStatus
-                        platform="x"
-                        posted={job.x_posted}
-                        scheduled={job.status === "scheduled_to_socialbee"}
-                      />
-                    </td>
-                  </tr>
-                ))}
+                        )}
+                      </td>
+                      <td className="p-3 text-center">
+                        <ScriptViewer job={job} />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        )}
+
+          {/* Show error message if there's an error */}
+          {error && (
+            <div className="text-center py-4 text-red-400">
+              Error: {error}
+            </div>
+          )}
+
+          {/* Show "no jobs" message only when not loading and no jobs exist */}
+          {!loading && !error && pagination.totalJobs === 0 && (
+            <div className="text-center py-8 text-gray-400">
+              No jobs found. <br />
+              <Button variant="link" onClick={() => (window.location.href = "/")} className="text-blue-400 hover:text-blue-300">
+                Create your first job
+              </Button>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!loading && !error && pagination.totalPages > 1 && (
+            <div className="flex justify-center items-center gap-4 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={!pagination.hasPreviousPage}
+                className="text-white border-gray-600 hover:bg-gray-700"
+                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <span className="text-sm text-gray-400">
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={!pagination.hasNextPage}
+                className="text-white border-gray-600 hover:bg-gray-700"
+                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+        </>
       </CardContent>
     </Card>
   );

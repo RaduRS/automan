@@ -238,11 +238,11 @@ export default function PlatformOptimizer() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8 pt-16">
-          <h1 className="text-3xl font-bold tracking-tight text-white">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl pt-16 font-bold tracking-tight text-white">
             Platform Content Optimizer
           </h1>
-          <p className="text-gray-300 mt-2">
+          <p className="text-gray-300 mt-2 pb-8">
             Generate platform-specific titles, descriptions, and hashtags
             optimized for each social media platform
           </p>
