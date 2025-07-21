@@ -20,6 +20,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface JobStatus {
   id: string;
@@ -69,6 +70,7 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
     url3: "",
   });
   const [textInput, setTextInput] = useState("");
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<"morning" | "midday" | "evening">("morning");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuggestingContent, setIsSuggestingContent] = useState(false);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
@@ -200,6 +202,7 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
         },
         body: JSON.stringify({
           brand: selectedBrand,
+          timePeriod: selectedTimePeriod
         }),
       });
 
@@ -344,32 +347,46 @@ export function TikTokForm({ selectedBrand }: TikTokFormProps) {
                       <div className="w-2 h-2 bg-blue-500 rounded-full" />
                       Text Content *
                     </Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSuggestContent}
-                      disabled={isSuggestingContent || isSubmitting || !!jobStatus}
-                      className="h-9 px-3 text-xs text-white hover:bg-gray-600"
-                      style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
-                    >
-                      {isSuggestingContent ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Lightbulb className="h-3 w-3 mr-1" />
-                          Suggest
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Select value={selectedTimePeriod} onValueChange={(value) => setSelectedTimePeriod(value as "morning" | "midday" | "evening")}>
+                        <SelectTrigger className="w-32 h-9 text-xs text-white focus:ring-0 focus:ring-offset-0 focus:outline-none" style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}>
+                          <SelectValue placeholder="Time" />
+                        </SelectTrigger>
+                        <SelectContent className="border-gray-600" style={{ backgroundColor: '#212223' }}>
+                          <SelectItem value="morning" className="text-white hover:bg-gray-700 focus:bg-gray-700">Morning</SelectItem>
+                          <SelectItem value="midday" className="text-white hover:bg-gray-700 focus:bg-gray-700">Midday</SelectItem>
+                          <SelectItem value="evening" className="text-white hover:bg-gray-700 focus:bg-gray-700">Evening</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSuggestContent}
+                        disabled={isSuggestingContent || isSubmitting || !!jobStatus}
+                        className="h-9 px-3 text-xs text-white hover:bg-gray-600"
+                        style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+                      >
+                        {isSuggestingContent ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Lightbulb className="h-3 w-3 mr-1" />
+                            Suggest
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   <Textarea
                     id="textInput"
                     value={textInput}
-                    onChange={(e) => setTextInput(e.target.value)}
+                    onChange={(e) => {
+                      setTextInput(e.target.value);
+                    }}
                     placeholder="Enter your text content here to generate a script, or click 'Suggest' for AI-generated ideas..."
                     disabled={isSubmitting || !!jobStatus}
                     required={inputMode === "text"}
