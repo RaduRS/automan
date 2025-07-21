@@ -2,14 +2,16 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ContentCalendarEntry } from "@/types/content-calendar";
-import { BrandName } from "@/lib/posting-schedule";
+import { BrandName, Platform } from "@/lib/posting-schedule";
 
 interface CalendarContextType {
   selectedBrand: BrandName;
+  selectedPlatform: Platform;
   currentWeekStart: Date;
   entries: ContentCalendarEntry[];
   loading: boolean;
   setSelectedBrand: (brand: BrandName) => void;
+  setSelectedPlatform: (platform: Platform) => void;
   setCurrentWeekStart: (date: Date) => void;
   fetchEntries: () => Promise<void>;
   updateEntry: (id: string, updates: Partial<ContentCalendarEntry>) => Promise<void>;
@@ -33,6 +35,7 @@ interface CalendarProviderProps {
 
 export function CalendarProvider({ children }: CalendarProviderProps) {
   const [selectedBrand, setSelectedBrand] = useState<BrandName>("DreamFloat");
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform>("TikTok");
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
     // Get current date and find the Monday of this week
     const today = new Date();
@@ -177,10 +180,12 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
 
   const value: CalendarContextType = {
     selectedBrand,
+    selectedPlatform,
     currentWeekStart,
     entries,
     loading,
     setSelectedBrand,
+    setSelectedPlatform,
     setCurrentWeekStart,
     fetchEntries,
     updateEntry,

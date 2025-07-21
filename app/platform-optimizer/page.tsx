@@ -345,7 +345,7 @@ export default function PlatformOptimizer() {
                 htmlFor="script"
                 className="text-base font-medium text-white"
               >
-                Script * (Required)
+                Script *
               </Label>
               <textarea
                 id="script"
