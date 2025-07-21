@@ -2,7 +2,6 @@
 
 import { CalendarProvider } from "@/contexts/CalendarContext";
 import { BrandSelector } from "@/components/calendar/BrandSelector";
-import { PlatformSelector } from "@/components/calendar/PlatformSelector";
 import { WeeklyCalendar } from "@/components/calendar/WeeklyCalendar";
 
 export default function ContentCalendarPage() {
@@ -22,15 +21,12 @@ export default function ContentCalendarPage() {
             </div>
 
             {/* Controls */}
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-8">
               <BrandSelector />
-              <PlatformSelector />
             </div>
 
             {/* Calendar */}
-            <div className="mb-8">
-              <WeeklyCalendar />
-            </div>
+            <WeeklyCalendar />
           </div>
         </CalendarProvider>
       </div>

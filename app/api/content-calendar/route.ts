@@ -6,13 +6,12 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const brand = searchParams.get("brand");
-    const platform = searchParams.get("platform");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
-    if (!brand || !platform || !startDate || !endDate) {
+    if (!brand || !startDate || !endDate) {
       return NextResponse.json(
-        { error: "Missing required parameters: brand, platform, startDate, endDate" },
+        { error: "Missing required parameters: brand, startDate, endDate" },
         { status: 400 }
       );
     }
@@ -21,7 +20,6 @@ export async function GET(request: NextRequest) {
       .from("content_calendar")
       .select("*")
       .eq("brand", brand)
-      .eq("platform", platform)
       .gte("scheduled_date", startDate)
       .lte("scheduled_date", endDate)
       .order("scheduled_date", { ascending: true })
@@ -48,39 +46,42 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { brand, platform, scheduled_date, time_slot, video_title, notes, is_downloaded, is_posted } = body;
+    const { brand, scheduled_date, time_slot, video_title, notes, is_downloaded, is_posted } = body;
 
-    if (!brand || !platform || !scheduled_date || !time_slot) {
+    if (!brand || !scheduled_date || !time_slot) {
       return NextResponse.json(
-        { error: "Missing required fields: brand, platform, scheduled_date, time_slot" },
+        { error: "Missing required fields: brand, scheduled_date, time_slot" },
         { status: 400 }
       );
     }
 
+    // Create entries for all platforms
+    const platforms = ["TikTok", "Instagram", "YouTubeShorts"];
+    const entries = platforms.map(platform => ({
+      brand,
+      platform,
+      scheduled_date,
+      time_slot,
+      video_title,
+      notes,
+      is_downloaded: is_downloaded || false,
+      is_posted: is_posted || false
+    }));
+
     const { data, error } = await supabase
       .from("content_calendar")
-      .insert({
-        brand,
-        platform,
-        scheduled_date,
-        time_slot,
-        video_title,
-        notes,
-        is_downloaded: is_downloaded || false,
-        is_posted: is_posted || false
-      })
-      .select()
-      .single();
+      .insert(entries)
+      .select();
 
     if (error) {
-      console.error("Error creating calendar entry:", error);
+      console.error("Error creating calendar entries:", error);
       return NextResponse.json(
-        { error: "Failed to create calendar entry" },
+        { error: "Failed to create calendar entries" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ entry: data });
+    return NextResponse.json({ entries: data });
   } catch (error) {
     console.error("Error in calendar POST:", error);
     return NextResponse.json(

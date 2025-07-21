@@ -79,14 +79,16 @@ export default function PlatformOptimizer() {
     } else {
       setIsLoadingScripts(true);
     }
-    
+
     try {
-      const response = await fetch(`/api/latest-scripts?offset=${offset}&limit=5`);
+      const response = await fetch(
+        `/api/latest-scripts?offset=${offset}&limit=5`
+      );
       const data: LatestScriptsResponse = await response.json();
 
       if (data.success) {
         if (append) {
-          setLatestScripts(prev => [...prev, ...data.scripts]);
+          setLatestScripts((prev) => [...prev, ...data.scripts]);
         } else {
           setLatestScripts(data.scripts);
         }
@@ -166,17 +168,11 @@ export default function PlatformOptimizer() {
   };
 
   const platformConfigs = {
-    facebook: {
-      name: "Facebook Reels",
-      color: "bg-blue-600",
-      strategy: "3-5 highly relevant hashtags",
-      format: "Facebook Reel",
-    },
-    twitter: {
-      name: "X (Twitter)",
+    tiktok: {
+      name: "TikTok",
       color: "bg-black",
-      strategy: "1-3 topical hashtags only",
-      format: "Video Post",
+      strategy: "Your current successful mix",
+      format: "TikTok Video",
     },
     youtube: {
       name: "YouTube Shorts",
@@ -190,11 +186,18 @@ export default function PlatformOptimizer() {
       strategy: "5-15 hashtags: format + niche mix",
       format: "Instagram Reel",
     },
-    tiktok: {
-      name: "TikTok",
+
+    facebook: {
+      name: "Facebook Reels",
+      color: "bg-blue-600",
+      strategy: "3-5 highly relevant hashtags",
+      format: "Facebook Reel",
+    },
+    twitter: {
+      name: "X (Twitter)",
       color: "bg-black",
-      strategy: "Your current successful mix",
-      format: "TikTok Video",
+      strategy: "1-3 topical hashtags only",
+      format: "Video Post",
     },
   };
 
@@ -249,7 +252,10 @@ export default function PlatformOptimizer() {
         </div>
 
         {/* Input Section */}
-        <Card className="mb-8 border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
+        <Card
+          className="mb-8 border text-white"
+          style={{ backgroundColor: "#161819", borderColor: "#282A2B" }}
+        >
           <CardHeader>
             <CardTitle className="text-white">Input Your Content</CardTitle>
             <CardDescription className="text-gray-300">
@@ -264,7 +270,10 @@ export default function PlatformOptimizer() {
                 Load from Database (Optional)
               </Label>
               <Select onValueChange={handleScriptSelect}>
-                <SelectTrigger className="w-full mt-2 text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
+                <SelectTrigger
+                  className="w-full mt-2 text-white"
+                  style={{ backgroundColor: "#161819", borderColor: "#282A2B" }}
+                >
                   <SelectValue
                     placeholder={
                       isLoadingScripts
@@ -273,12 +282,16 @@ export default function PlatformOptimizer() {
                     }
                   />
                 </SelectTrigger>
-                <SelectContent 
-                  style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
+                <SelectContent
+                  style={{ backgroundColor: "#161819", borderColor: "#282A2B" }}
                   className="max-h-80 overflow-y-auto"
                 >
                   {latestScripts.map((script) => (
-                    <SelectItem key={script.id} value={script.id} className="text-white hover:bg-gray-700">
+                    <SelectItem
+                      key={script.id}
+                      value={script.id}
+                      className="text-white hover:bg-gray-700"
+                    >
                       <div className="flex flex-col">
                         <span className="font-medium text-left">
                           {script.title}
@@ -291,7 +304,11 @@ export default function PlatformOptimizer() {
                     </SelectItem>
                   ))}
                   {latestScripts.length === 0 && !isLoadingScripts && (
-                    <SelectItem value="no-scripts" disabled className="text-gray-400">
+                    <SelectItem
+                      value="no-scripts"
+                      disabled
+                      className="text-gray-400"
+                    >
                       No scripts found
                     </SelectItem>
                   )}
@@ -324,7 +341,10 @@ export default function PlatformOptimizer() {
             </div>
 
             <div>
-              <Label htmlFor="script" className="text-base font-medium text-white">
+              <Label
+                htmlFor="script"
+                className="text-base font-medium text-white"
+              >
                 Script * (Required)
               </Label>
               <textarea
@@ -333,13 +353,16 @@ export default function PlatformOptimizer() {
                 value={script}
                 onChange={(e) => setScript(e.target.value)}
                 className="w-full min-h-[120px] mt-2 px-3 py-2 border rounded-md text-white placeholder-gray-400 focus:border-blue-500 resize-vertical"
-                style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
+                style={{ backgroundColor: "#161819", borderColor: "#282A2B" }}
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="title" className="text-base font-medium text-white">
+                <Label
+                  htmlFor="title"
+                  className="text-base font-medium text-white"
+                >
                   Original Title (Optional)
                 </Label>
                 <input
@@ -349,12 +372,15 @@ export default function PlatformOptimizer() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full mt-2 px-3 py-2 border rounded-md text-white placeholder-gray-400 focus:border-blue-500"
-                  style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
+                  style={{ backgroundColor: "#161819", borderColor: "#282A2B" }}
                 />
               </div>
 
               <div>
-                <Label htmlFor="description" className="text-base font-medium text-white">
+                <Label
+                  htmlFor="description"
+                  className="text-base font-medium text-white"
+                >
                   Original Description (Optional)
                 </Label>
                 <input
@@ -364,7 +390,7 @@ export default function PlatformOptimizer() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full mt-2 px-3 py-2 border rounded-md text-white placeholder-gray-400 focus:border-blue-500"
-                  style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
+                  style={{ backgroundColor: "#161819", borderColor: "#282A2B" }}
                 />
               </div>
             </div>
@@ -374,7 +400,7 @@ export default function PlatformOptimizer() {
               onClick={handleGenerate}
               disabled={!script.trim() || isGenerating}
               className="w-full h-11 text-base text-white"
-              style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+              style={{ backgroundColor: "#212223", borderColor: "#282A2B" }}
             >
               {isGenerating ? (
                 <>
@@ -390,9 +416,14 @@ export default function PlatformOptimizer() {
 
         {/* Results Section */}
         {platformContent && (
-          <Card className="border text-white" style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}>
+          <Card
+            className="border text-white"
+            style={{ backgroundColor: "#161819", borderColor: "#282A2B" }}
+          >
             <CardHeader>
-              <CardTitle className="text-white">Platform-Optimized Content</CardTitle>
+              <CardTitle className="text-white">
+                Platform-Optimized Content
+              </CardTitle>
               <CardDescription className="text-gray-300">
                 Copy the content optimized for each platform. Click any text to
                 copy it to your clipboard.
@@ -400,13 +431,19 @@ export default function PlatformOptimizer() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="facebook" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 rounded-lg gap-2" style={{ backgroundColor: '#212223' }}>
+                <TabsList
+                  className="grid w-full grid-cols-5 rounded-lg gap-2"
+                  style={{ backgroundColor: "#212223" }}
+                >
                   {Object.entries(platformConfigs).map(([key, config]) => (
-                    <TabsTrigger 
-                      key={key} 
-                      value={key} 
+                    <TabsTrigger
+                      key={key}
+                      value={key}
                       className="text-xs data-[state=active]:text-white text-gray-500 rounded-md transition-all duration-200"
-                      style={{ backgroundColor: '#161819', borderColor: '#282A2B' }}
+                      style={{
+                        backgroundColor: "#161819",
+                        borderColor: "#282A2B",
+                      }}
                     >
                       {config.name}
                     </TabsTrigger>
@@ -446,7 +483,10 @@ export default function PlatformOptimizer() {
                           {platform === "youtube" && (
                             <Card
                               className="cursor-pointer hover:bg-gray-700 transition-colors border text-white"
-                              style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+                              style={{
+                                backgroundColor: "#212223",
+                                borderColor: "#282A2B",
+                              }}
                               onClick={() =>
                                 copyToClipboard(
                                   content.title,
@@ -463,7 +503,7 @@ export default function PlatformOptimizer() {
                                     <Badge
                                       variant="secondary"
                                       className="text-xs text-white"
-                                      style={{ backgroundColor: '#161819' }}
+                                      style={{ backgroundColor: "#161819" }}
                                     >
                                       {content.title.length} chars
                                     </Badge>
@@ -489,10 +529,13 @@ export default function PlatformOptimizer() {
                             {platform === "youtube" ? (
                               <Card
                                 className="cursor-pointer hover:bg-gray-700 transition-colors border text-white"
-                                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+                                style={{
+                                  backgroundColor: "#212223",
+                                  borderColor: "#282A2B",
+                                }}
                                 onClick={() =>
                                   copyToClipboard(
-                                    `${content.title} #shorts\n\n${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`,
+                                    `${content.title}\n\n${content.description}\n\n${content.hashtags}`,
                                     `${platform}-complete`
                                   )
                                 }
@@ -510,7 +553,10 @@ export default function PlatformOptimizer() {
                                   </div>
                                 </CardHeader>
                                 <CardContent className="pt-0">
-                                  <div className="space-y-2 p-4 rounded-md" style={{ backgroundColor: '#161819' }}>
+                                  <div
+                                    className="space-y-2 p-4 rounded-md"
+                                    style={{ backgroundColor: "#161819" }}
+                                  >
                                     <p className="font-medium text-white">
                                       {content.title}
                                     </p>
@@ -526,7 +572,10 @@ export default function PlatformOptimizer() {
                             ) : (
                               <Card
                                 className="cursor-pointer hover:bg-gray-700 transition-colors border text-white"
-                                style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+                                style={{
+                                  backgroundColor: "#212223",
+                                  borderColor: "#282A2B",
+                                }}
                                 onClick={() =>
                                   copyToClipboard(
                                     `${content.description}\n${content.hashtags}`,
@@ -547,7 +596,10 @@ export default function PlatformOptimizer() {
                                   </div>
                                 </CardHeader>
                                 <CardContent className="pt-0">
-                                  <div className="space-y-2 p-4 rounded-md" style={{ backgroundColor: '#161819' }}>
+                                  <div
+                                    className="space-y-2 p-4 rounded-md"
+                                    style={{ backgroundColor: "#161819" }}
+                                  >
                                     <p className="text-gray-300">
                                       {content.description}
                                     </p>
@@ -562,7 +614,10 @@ export default function PlatformOptimizer() {
                             {/* First Comment Promotional Content */}
                             <Card
                               className="cursor-pointer hover:bg-gray-700 transition-colors border text-white"
-                              style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+                              style={{
+                                backgroundColor: "#212223",
+                                borderColor: "#282A2B",
+                              }}
                               onClick={() => {
                                 const promoData =
                                   getPromotionalContent(platform);
@@ -581,7 +636,7 @@ export default function PlatformOptimizer() {
                                     <Badge
                                       variant="secondary"
                                       className="text-xs text-white"
-                                      style={{ backgroundColor: '#161819' }}
+                                      style={{ backgroundColor: "#161819" }}
                                     >
                                       First Comment
                                     </Badge>
@@ -604,11 +659,14 @@ export default function PlatformOptimizer() {
                           {/* Description */}
                           <Card
                             className="cursor-pointer hover:bg-gray-700 transition-colors border text-white"
-                            style={{ backgroundColor: '#212223', borderColor: '#282A2B' }}
+                            style={{
+                              backgroundColor: "#212223",
+                              borderColor: "#282A2B",
+                            }}
                             onClick={() =>
                               copyToClipboard(
                                 platform === "youtube"
-                                  ? `${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`
+                                  ? `${content.description}\n\n${content.hashtags}`
                                   : content.description,
                                 `${platform}-description`
                               )
@@ -623,11 +681,13 @@ export default function PlatformOptimizer() {
                                   <Badge
                                     variant="secondary"
                                     className="text-xs text-white"
-                                    style={{ backgroundColor: '#161819' }}
+                                    style={{ backgroundColor: "#161819" }}
                                   >
                                     {platform === "youtube"
                                       ? `${
-                                          content.description.length + 110
+                                          content.description.length +
+                                          content.hashtags.length +
+                                          2
                                         } chars`
                                       : `${content.description.length} chars`}
                                   </Badge>
@@ -642,7 +702,7 @@ export default function PlatformOptimizer() {
                             <CardContent className="pt-0">
                               <p className="text-base whitespace-pre-line text-white">
                                 {platform === "youtube"
-                                  ? `${content.description} #shorts\n\nAccess to 'The Arsenal'\nhttps://youtube.com/playlist?list=PLIpRdZgseBvkq0JlYeInFTiMRcjwEAMdc&si=ysufV-YmhseqiMgR`
+                                  ? `${content.description}\n\n${content.hashtags}`
                                   : content.description}
                               </p>
                             </CardContent>

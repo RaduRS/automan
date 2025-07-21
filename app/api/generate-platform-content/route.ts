@@ -44,13 +44,13 @@ ${originalDescription ? `ORIGINAL DESCRIPTION: ${originalDescription}` : ""}
 PLATFORM OPTIMIZATION REQUIREMENTS:
 
 **YOUTUBE SHORTS:**
-- Title: Compelling, keyword-rich (60 chars max) with #shorts at the end
-- Description: Brief, engaging (2-3 sentences max)
-- Hashtags: Not needed (will be handled in UI)
+- Title: Compelling, keyword-rich (60 chars max) - NO EMOJIS (emojis hurt YouTube Shorts algorithm)
+- Description: Brief, engaging (2-3 sentences max) - focus on value proposition
+- Hashtags: Only #shorts (additional hashtags handled in UI)
 
 **INSTAGRAM REELS:**
 - Description: 1-2 sentences with relevant emojis (NO TITLE NEEDED)
-- Hashtags: Generate the optimal number of highly discoverable hashtags for this specific content and Instagram's algorithm. Focus on hashtags that will maximize reach and For You page visibility.
+- Hashtags: Generate exactly 7-9 highly targeted hashtags for maximum reach. Mix 3-4 niche-specific hashtags (10K-100K posts) with 3-4 broader hashtags (100K-1M posts) and 1-2 trending hashtags. This is the optimal number for Instagram's 2024 algorithm.
 
 **FACEBOOK REELS:**
 - Description: Relatable, shareable content with emojis (NO TITLE NEEDED)
@@ -58,7 +58,7 @@ PLATFORM OPTIMIZATION REQUIREMENTS:
 
 **TIKTOK:**
 - Description: Catchy, trend-relevant with emojis (NO TITLE NEEDED)
-- Hashtags: Generate the optimal number of hashtags for TikTok's algorithm and this specific content. Focus on trending hashtags that will maximize For You page visibility and engagement.
+- Hashtags: Generate 5-8 hashtags mixing trending tags with niche-specific ones. Include 1-2 viral hashtags, 2-3 niche hashtags, and 2-3 content-specific hashtags. This maximizes For You page visibility while maintaining relevance.
 
 **X (TWITTER):**
 - Description: Question or bold statement to encourage engagement (NO TITLE NEEDED)
@@ -77,14 +77,14 @@ Respond with ONLY valid JSON in this exact format:
 
 {
   "youtube": {
-    "title": "Title optimized for YouTube Shorts...",
-    "description": "Brief description for YouTube...",
+    "title": "Title optimized for YouTube Shorts (no emojis)...",
+    "description": "Brief value-focused description for YouTube...",
     "hashtags": "#shorts"
   },
   "instagram": {
     "title": "",
     "description": "Description with emojis for Instagram...",
-    "hashtags": "mix of #reels #reelsinstagram + content-specific hashtags"
+    "hashtags": "exactly 7-9 targeted hashtags mixing niche and broader reach"
   },
   "facebook": {
     "title": "",

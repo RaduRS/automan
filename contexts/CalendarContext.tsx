@@ -2,16 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ContentCalendarEntry } from "@/types/content-calendar";
-import { BrandName, Platform } from "@/lib/posting-schedule";
+import { BrandName } from "@/lib/posting-schedule";
 
 interface CalendarContextType {
   selectedBrand: BrandName;
-  selectedPlatform: Platform;
   currentWeekStart: Date;
   entries: ContentCalendarEntry[];
   loading: boolean;
   setSelectedBrand: (brand: BrandName) => void;
-  setSelectedPlatform: (platform: Platform) => void;
   setCurrentWeekStart: (date: Date) => void;
   fetchEntries: () => Promise<void>;
   updateEntry: (id: string, updates: Partial<ContentCalendarEntry>) => Promise<void>;
@@ -35,7 +33,6 @@ interface CalendarProviderProps {
 
 export function CalendarProvider({ children }: CalendarProviderProps) {
   const [selectedBrand, setSelectedBrand] = useState<BrandName>("DreamFloat");
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform>("TikTok");
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
     // Get current date and find the Monday of this week
     const today = new Date();
@@ -59,7 +56,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       const endDate = weekEnd.toISOString().split('T')[0];
 
       const response = await fetch(
-        `/api/content-calendar?brand=${selectedBrand}&platform=${selectedPlatform}&startDate=${startDate}&endDate=${endDate}`
+        `/api/content-calendar?brand=${selectedBrand}&startDate=${startDate}&endDate=${endDate}`
       );
 
       if (!response.ok) {
@@ -116,7 +113,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     const tempEntry = {
       id: tempId,
       brand: entry.brand || selectedBrand,
-      platform: entry.platform || selectedPlatform,
+      platform: entry.platform || "TikTok", // Default platform, but we'll create for all
       scheduled_date: entry.scheduled_date || '',
       time_slot: entry.time_slot || '',
       is_downloaded: entry.is_downloaded || false,
@@ -144,9 +141,9 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       }
 
       const data = await response.json();
-      // Replace temp entry with real entry
+      // Replace temp entry with real entries (one for each platform)
       setEntries(prev => 
-        prev.map(e => e.id === tempId ? data.entry : e)
+        prev.filter(e => e.id !== tempId).concat(data.entries || [data.entry])
       );
     } catch (error) {
       console.error("Error creating calendar entry:", error);
@@ -173,19 +170,17 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     }
   };
 
-  // Fetch entries when brand, platform, or week changes
+  // Fetch entries when brand or week changes
   useEffect(() => {
     fetchEntries();
-  }, [selectedBrand, selectedPlatform, currentWeekStart]);
+  }, [selectedBrand, currentWeekStart]);
 
   const value: CalendarContextType = {
     selectedBrand,
-    selectedPlatform,
     currentWeekStart,
     entries,
     loading,
     setSelectedBrand,
-    setSelectedPlatform,
     setCurrentWeekStart,
     fetchEntries,
     updateEntry,

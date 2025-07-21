@@ -28,8 +28,7 @@ interface TimeSlotCardProps {
 }
 
 function TimeSlotCard({ date, timeSlot, entry }: TimeSlotCardProps) {
-  const { selectedBrand, selectedPlatform, updateEntry, createEntry } =
-    useCalendar();
+  const { selectedBrand, updateEntry, createEntry } = useCalendar();
   const [isEditing, setIsEditing] = useState(false);
   const [videoTitle, setVideoTitle] = useState(entry?.video_title || "");
   const [notes, setNotes] = useState(entry?.notes || "");
@@ -40,7 +39,6 @@ function TimeSlotCard({ date, timeSlot, entry }: TimeSlotCardProps) {
     } else {
       createEntry({
         brand: selectedBrand,
-        platform: selectedPlatform,
         scheduled_date: date.toISOString().split("T")[0],
         time_slot: timeSlot,
         is_downloaded: checked,
@@ -55,7 +53,6 @@ function TimeSlotCard({ date, timeSlot, entry }: TimeSlotCardProps) {
     } else if (checked) {
       createEntry({
         brand: selectedBrand,
-        platform: selectedPlatform,
         scheduled_date: date.toISOString().split("T")[0],
         time_slot: timeSlot,
         is_downloaded: false,
@@ -73,7 +70,6 @@ function TimeSlotCard({ date, timeSlot, entry }: TimeSlotCardProps) {
     } else {
       await createEntry({
         brand: selectedBrand,
-        platform: selectedPlatform,
         scheduled_date: date.toISOString().split("T")[0],
         time_slot: timeSlot,
         video_title: videoTitle || null,
@@ -230,7 +226,6 @@ function TimeSlotCardSkeleton() {
 export function WeeklyCalendar() {
   const {
     selectedBrand,
-    selectedPlatform,
     currentWeekStart,
     entries,
     loading,
@@ -294,9 +289,10 @@ export function WeeklyCalendar() {
         <div className="grid grid-cols-7 gap-4">
           {weekDays.map((date, index) => {
             const dayType = getDayType(date);
+            // Use TikTok schedule as the base since it has the most posts per day
             const timeSlots = getPostingTimes(
               selectedBrand,
-              selectedPlatform,
+              "TikTok",
               dayType
             );
             const dayEntries = entries.filter(
@@ -321,6 +317,8 @@ export function WeeklyCalendar() {
 
                 <div className="space-y-4">
                   {timeSlots.map((timeSlot) => {
+                    // Find the first entry for this time slot (regardless of platform)
+                    // since all platforms will have the same content
                     const entry = dayEntries.find(
                       (e) => e.time_slot === timeSlot
                     );
